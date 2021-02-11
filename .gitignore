@@ -1,0 +1,8 @@
+airsim_images
+images
+archives
+__pycache__
+airsimImage.txt
+imageData.txt
+waypoints_*
+

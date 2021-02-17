@@ -1,49 +1,41 @@
 #!/usr/bin/env python3
 
-"""
-1. be able to reject the noise data, like the images which are not at a particular height
-2. to be able to take dimensions of the area to be covered and resolution of the images
-    to decide the height at which the quadcopters should hover to get the perfect images,
-    also to know the grid size for a specific overlap of the images
-3. to handle the images with low matches properly
-4. enque all the images coming from the cameras
-5. to be able to estimate the overlapping area in the "stitched image" with the "to be stitched" image,
-    which can make the algorithm bit faster
-6. changing the resolutin of the image remotely
-7. to be able to know area which are covered and which are remaining
-8. how to measure the overlap using the corners of the image
-"""
+import rospy
+import numpy as np
+from cv_bridge import CvBridge, CvBridgeError
+from geometry_msgs.msg import Pose
 
-"""
-to make a detailed map of an area we need to define a parameter to measure the detail in a map.
-we define a parameter, p:= number of pixels per meter (it will be different for horizontal and vertical).
-let's say we fix the resolution of the image being taken according to our covenience:= 2000 x 1500
-then following from the horizontal FOV that is 90 degrees, we get 2h meters of the area horizontally
-where h is the height of the camera. so, 2000 pixels / 2h = p. we get h = 1000/p. simple
+import sys
+sys.path.append ('../drone_image_stitching')
 
-for grid size we can just use the 70% or more overlap rule and then set an upperlimit for the length of the grid.
-following this approach we get unit sizes as 0.6h, where h is the height of the camera
-"""
+class ImageStitch (object):
+    def __init__ (self):
+        self.pose = None
+        self.curr_img = None
+        self.result = None
+        self.bridge = CvBridge ()
 
-"""
-one of the core problems of the problem is, how we find the overlap of the rectangle with other rectangle
-there is a clipping algorithm for polygons which we can use and do the, luckily the algorithm is implemented
-and available as a python lib: pyclipper (https://pypi.org/project/pyclipper/)
-"""
+    def pose_cb (self, data):
+        self.pose = data.pose
 
-"""
-one of the problem frequently encountered is what do we do when the no. of matches are way less than ideal numbers.
-low numbers causes bad warping of images which further decrease the quality of images to be added later
-so it becomes important to formulate a protocol for deciding what to do in that condition
-"""
+    def image_sb (self, data):
+        try:
+            curr_img = self.bridge.imgmsg_to_cv2 (data, "bgr8")
+        except CvBridgeError as e:
+            print (e)
 
-"""
-for stitching images coming from 4 cameras I will be using queue, but have to figure out how to
-enque or stitch the images so that it can make a good stitched image
-"""
+        self.combine (curr_img)
 
-def main ():
-    pass
+    def combine (self, data):
+        pass
 
 if __name__ == '__main__':
-    main ()
+    rospy.init_node ('super_stitch')
+
+    # subscribe to the data coming from the quadcopter
+    pose_sub = rospy.Subscriber ("pose topic name", 10, pose_cb)
+    image_sub = rospy.Subscriber ("image topic name", 10, image_cb)
+
+    # to talk to the controller
+    pose_pub = rospy.Publisher ("controller pose topic name", Pose, queue_size=10, latch=True)
+    rospy.spin ()

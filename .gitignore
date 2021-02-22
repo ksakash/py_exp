@@ -5,4 +5,7 @@ __pycache__
 airsimImage.txt
 imageData.txt
 waypoints_*
+smt.py
+robot1coverage.py
+robot2coverage.py
 

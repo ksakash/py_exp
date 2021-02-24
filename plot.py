@@ -1,80 +1,46 @@
 #!/usr/bin/env python3
 
-from matplotlib import pyplot as plt
-from matplotlib.patches import Rectangle
-import random
-import math
+import numpy as np
+import matplotlib.pyplot as plt
+import time
 
 def readInput (filename):
     f = open (filename, 'r')
     lines = f.readlines()
     f.close ()
-    arr = []
+    x_ = []
+    y_ = []
 
     for line in lines:
         (x, y) = (int (line.split(' ')[0]), int (line.split(' ')[1]))
-        arr.append ((x, y))
+        x_.append (x)
+        y_.append (y)
 
-    return arr
+    return (x_, y_)
 
-filename = 'waypoints_0'
-points = readInput (filename)
 
-filename = 'waypoints_1'
-points1 = readInput (filename)
+(x0, y0) = readInput ('waypoints_0')
+(x1, y1) = readInput ('waypoints_1')
+# (x2, y2) = readInput ('robot2.plan')
+# (x3, y3) = readInput ('robot3.plan')
 
-filename = 'waypoints_2'
-points2 = readInput (filename)
+# obsx = [2, 3, 1, 3, 1, 2]
+# obsy = [0, 0, 2, 2, 4, 4]
 
-filename = 'waypoints_3'
-points3 = readInput (filename)
+initialx = [x0[0], x1[0]]
+initialy = [y0[0], y1[0]]
 
-h = 2
-width = 2 * h
-height = 0.75 * width
+plt.scatter (initialx, initialy, c=['r','b'])
+# plt.scatter (obsx, obsy, c=['k','k','k','k','k','k'])
+plt.ylim ((-1, 11))
+plt.xlim ((-1, 11))
+plt.pause (1)
 
-padding = 0
-
-x_origin = -(h + padding)
-y_origin = -((height/2) + padding)
-
-x_end = 8 - x_origin
-y_end = 8 - y_origin
-
-color = (0.5,0.5,0.5)
-color1 = (0.5,0.5,0.5)
-color2 = (0.5,0.5,0.5)
-color3 = (0.5,0.5,0.5)
-
-fig, ax = plt.subplots (figsize=(x_end-x_origin,y_end-y_origin))
-ax.set (xlim=(x_origin,x_end), ylim=(y_origin,y_end))
-# ax.axis ('off')
-alpha = 0.1
-
-c = 0
-for p in points:
-    xy = (p[0] - width/2, p[1] - height/2)
-    rect = Rectangle (xy, width, height, linewidth=1, edgecolor='none', facecolor=color, alpha=alpha)
-    # ax.add_patch (rect)
-
-    xy1 = (points1[c][0] - width/2, points1[c][1] - height/2)
-    rect1 = Rectangle (xy1, width, height, linewidth=1, edgecolor='none', facecolor=color1, alpha=alpha)
-    # ax.add_patch (rect1)
-
-    xy2 = (points2[c][0] - width/2, points2[c][1] - height/2)
-    rect2 = Rectangle (xy2, width, height, linewidth=1, edgecolor='none', facecolor=color2, alpha=alpha)
-    # ax.add_patch (rect2)
-
-    xy3 = (points3[c][0] - width/2, points3[c][1] - height/2)
-    rect3 = Rectangle (xy3, width, height, linewidth=1, edgecolor='none', facecolor=color3, alpha=alpha)
-    # ax.add_patch (rect3)
-
-    plt.scatter ([p[0]],[p[1]], c=['r'])
-    plt.scatter ([points1[c][0]],[points1[c][1]], c=['g'])
-    plt.scatter ([points2[c][0]],[points2[c][1]], c=['b'])
-    plt.scatter ([points3[c][0]],[points3[c][1]], c=['c'])
-
-    plt.pause (1)
-    c += 1
+for i in range (0, len (x0), 1):
+    plt.plot (x0[i:i+2], y0[i:i+2], 'r--')
+    plt.plot (x1[i:i+2], y1[i:i+2], 'b--')
+    # plt.plot (x2[i:i+2], y2[i:i+2], 'go-')
+    # plt.plot (x3[i:i+2], y3[i:i+2], 'yo-')
+    plt.pause (0.1)
 
 plt.show ()

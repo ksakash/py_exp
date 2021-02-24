@@ -6,10 +6,10 @@ import numpy as np
 def fill_obstacle_tocover (x_, y_, obstacles, visible, l, map):
     dimension_x = map.shape[1]
     dimension_y = map.shape[0]
-    x_l = max (0, x_-l)
-    x_h = min (dimension_x, x_+l+1)
-    y_l = max (0, y_-l)
-    y_h = min (dimension_y, y_+l+1)
+    x_l = int (max (0, x_-l))
+    x_h = int (min (dimension_x, x_+l+1))
+    y_l = int (max (0, y_-l))
+    y_h = int (min (dimension_y, y_+l+1))
     for x in range (x_l, x_h):
         for y in range (y_l, y_h):
             if (map[y][x] == 0.0) and (x,y) not in obstacles:
@@ -20,10 +20,10 @@ def fill_obstacle_tocover (x_, y_, obstacles, visible, l, map):
 def safe_space (x_, y_, l, map):
     dimension_x = map.shape[1]
     dimension_y = map.shape[0]
-    x_l = max (0, x_-l)
-    x_h = min (dimension_x, x_+l+1)
-    y_l = max (0, y_-l)
-    y_h = min (dimension_y, y_+l+1)
+    x_l = int (max (0, x_-l))
+    x_h = int (min (dimension_x, x_+l+1))
+    y_l = int (max (0, y_-l))
+    y_h = int (min (dimension_y, y_+l+1))
     arr = []
     for x in range (x_l, x_h):
         for y in range (y_l, y_h):
@@ -57,11 +57,14 @@ total = map.shape[0] * map.shape[1]
 R = 2
 local_range = 1
 
-start_x_0 = 0 # 0
-start_y_0 = 0 # 0
+start_x = np.empty ((R,))
+start_y = np.empty ((R,))
 
-start_x_1 = 0 # 0
-start_y_1 = 2 # 0
+start_x[0] = 0
+start_x[1] = 0
+
+start_y[0] = 0
+start_y[1] = 2
 
 dimension_x = map.shape[1]
 dimension_y = map.shape[0]
@@ -70,14 +73,14 @@ obstacles = []
 visible = []
 covered = []
 
-fill_obstacle_tocover (start_x_0, start_y_0, obstacles, visible, local_range, map)
-fill_obstacle_tocover (start_x_1, start_y_1, obstacles, visible, local_range, map)
+for r in range (R):
+    fill_obstacle_tocover (start_x[r], start_y[r], obstacles, visible, local_range, map)
 
 k = 0
 
 while num_covered < total:
-    print ("robot0:", start_x_0, start_y_0)
-    print ("robot1:", start_x_1, start_y_1)
+    for r in range (R):
+        print ("robot " + str (r) + ":", start_x[r], start_y[r])
 
     num_visible = len (visible)
 
@@ -97,11 +100,9 @@ while num_covered < total:
 
     s.add (total_c == Sum (Re + S[0] + S[1] + C[0] + C[1]))
 
-    s.add (And (X[0][0] == start_x_0, Y[0][0] == start_y_0))
-    s.add (Or (X[0][T-1] != start_x_0, Y[0][T-1] != start_y_0))
-
-    s.add (And (X[1][0] == start_x_1, Y[1][0] == start_y_1))
-    s.add (Or (X[1][T-1] != start_x_1, Y[1][T-1] != start_y_1))
+    for r in range (R):
+        s.add (And (X[r][0] == start_x[r], Y[r][0] == start_y[r]))
+        s.add (Or (X[r][T-1] != start_x[r], Y[r][T-1] != start_y[r]))
 
     print ("obstacles:", obstacles)
     print ("visible:", visible)
@@ -123,6 +124,7 @@ while num_covered < total:
             s.add (Or (C[r][t] == 2, C[r][t] == 5))
             s.add (And (S[r][t] >= 0, S[r][t] <= 32))
 
+    # motion primitives
     for r in range (R):
         for t in range (T-1):
             s.add(Implies(P[r][t] == 0, And(X[r][t+1] == X[r][t], Y[r][t+1] == Y[r][t], C[r][t] == 2))) # same
@@ -131,8 +133,13 @@ while num_covered < total:
             s.add(Implies(P[r][t] == 3, And(X[r][t+1] == X[r][t], Y[r][t+1] == Y[r][t]-1, C[r][t] == 5))) # down
             s.add(Implies(P[r][t] == 4, And(X[r][t+1] == X[r][t]-1, Y[r][t+1] == Y[r][t], C[r][t] == 5))) # left
 
-    safe = safe_space (start_x_0, start_y_0, local_range, map) # need to change safe space
-    safe += safe_space (start_x_1, start_y_1, local_range, map)
+    # collision avoidance
+    for t in range(0, T):
+        s.add(Or(X[0][t] != X[1][t], Y[0][t] != Y[1][t]))
+
+    safe = []
+    for r in range (R):
+        safe += safe_space (start_x[r], start_y[r], local_range, map) # need to change safe space
     safe += visible
 
     # local bound constraints
@@ -166,11 +173,9 @@ while num_covered < total:
             print (model[X[r][t]], model[Y[r][t]])
         print ('-------------------')
 
-    start_x_0 = int (str (model[X[0][T-1]]))
-    start_y_0 = int (str (model[Y[0][T-1]]))
-
-    start_x_1 = int (str (model[X[1][T-1]]))
-    start_y_1 = int (str (model[Y[1][T-1]]))
+    for r in range (R):
+        start_x[r] = int (str (model[X[r][T-1]]))
+        start_y[r] = int (str (model[Y[r][T-1]]))
 
     # remove the grids already covered
     for r in range (R):

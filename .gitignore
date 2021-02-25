@@ -8,4 +8,6 @@ waypoints_*
 smt.py
 robot1coverage.py
 robot2coverage.py
+waypoints_*
+robot*
 

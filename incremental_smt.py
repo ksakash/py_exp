@@ -121,13 +121,13 @@ while num_covered < total:
             s.add (And (Y[r][t] < dimension_y, Y[r][t] >= 0))
 
             s.add (And (P[r][t] < 5, P[r][t] >= 0))
-            s.add (Or (C[r][t] == 2, C[r][t] == 5))
+            s.add (Or (C[r][t] == 3, C[r][t] == 5))
             s.add (And (S[r][t] >= 0, S[r][t] <= 32))
 
     # motion primitives
     for r in range (R):
         for t in range (T-1):
-            s.add(Implies(P[r][t] == 0, And(X[r][t+1] == X[r][t], Y[r][t+1] == Y[r][t], C[r][t] == 2))) # same
+            s.add(Implies(P[r][t] == 0, And(X[r][t+1] == X[r][t], Y[r][t+1] == Y[r][t], C[r][t] == 3))) # same
             s.add(Implies(P[r][t] == 1, And(X[r][t+1] == X[r][t]+1, Y[r][t+1] == Y[r][t], C[r][t] == 5))) # right
             s.add(Implies(P[r][t] == 2, And(X[r][t+1] == X[r][t], Y[r][t+1] == Y[r][t]+1, C[r][t] == 5))) # up
             s.add(Implies(P[r][t] == 3, And(X[r][t+1] == X[r][t], Y[r][t+1] == Y[r][t]-1, C[r][t] == 5))) # down
@@ -140,7 +140,7 @@ while num_covered < total:
     safe = []
     for r in range (R):
         safe += safe_space (start_x[r], start_y[r], local_range, map) # need to change safe space
-    safe += visible
+    safe += covered
 
     # local bound constraints
     for r in range (R):
@@ -150,7 +150,7 @@ while num_covered < total:
     # cover as many visible space as possible
     count = 0
     for (x,y) in visible:
-        s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)]), Re[count] == count))
+        s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)]), Re[count] == 2 * count))
         s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)])), Re[count] == 2 * num_visible))
         count += 1
 
@@ -158,7 +158,11 @@ while num_covered < total:
     for r in range (R):
         for t in range (T):
             for (x,y) in safe:
-                s.add (Implies (And (X[r][t] == x, Y[r][t] == y), S[r][t] == (abs (visible[0][0] - x) + abs (visible[0][1] - y))))
+                cost = 0
+                for i in range (num_visible):
+                    cost += (abs (visible[i][0] - x) + abs (visible[i][1] - y))
+                cost = int (cost / num_visible)
+                s.add (Implies (And (X[r][t] == x, Y[r][t] == y), S[r][t] == cost))
 
     h = s.minimize (total_c)
 

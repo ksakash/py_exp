@@ -85,7 +85,7 @@ for r in range (R):
 motion_w = 1 # cost of taking each step
 old_w = 1 # reward of visiting old grid first
 visible_w = 1 # reward of covering visible grids which are near
-not_covered_w = 0 # cost of covering already covered grid
+not_covered_w = 1 # cost of covering already covered grid
 
 while num_covered < total:
     for r in range (R):
@@ -108,7 +108,7 @@ while num_covered < total:
 
     C = [[Int("c_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
 
-    s.add (total_c == Sum (Re + S[0] + S[1] + S[2] + S[3] + C[0] + C[1] + C[2] + C[3]))
+    s.add (total_c == Sum (Re + S[0] + S[1] + S[2] + S[3] + C[0] + C[1] + C[2] + C[3] + NC[0] + NC[1] + NC[2] + NC[3]))
 
     for r in range (R):
         s.add (And (X[r][0] == start_x[r], Y[r][0] == start_y[r]))
@@ -118,7 +118,7 @@ while num_covered < total:
     print ("visible:", visible)
 
     for i in range (num_visible):
-        s.add (Or (Re[i] <= 2 * num_visible, Re[i] >= 0))
+        s.add (Or (And (Re[i] <= old_w * num_visible, Re[i] >= 0), Re[i] == 200))
 
     # obstacle avoidance
     for r in range (R):
@@ -133,7 +133,7 @@ while num_covered < total:
             s.add (And (P[r][t] < 5, P[r][t] >= 0))
             s.add (Or (C[r][t] == 3 * motion_w, C[r][t] == 5 * motion_w))
             s.add (And (S[r][t] >= 0, S[r][t] <= 32))
-            s.add (Or (NC[r][t] == not_covered_w, NC[r][t] == 1000))
+            s.add (Or (NC[r][t] == not_covered_w, NC[r][t] == 0))
 
     # motion primitives
     for r in range (R):
@@ -167,7 +167,7 @@ while num_covered < total:
     count = 0
     for (x,y) in visible:
         s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)]), Re[count] == old_w * count))
-        s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)])), Re[count] == 2 * num_visible))
+        s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)])), Re[count] == 200))
         count += 1
 
     # if lost then the robot should gravitate towards the visible grids
@@ -183,7 +183,7 @@ while num_covered < total:
     for r in range (R):
         for t in range (T):
             s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for (x,y) in covered]), NC[r][t] == not_covered_w))
-            s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for (x,y) in covered])), NC[r][t] == 1000))
+            s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for (x,y) in covered])), NC[r][t] == 0))
 
     h = s.minimize (total_c)
 

@@ -24,13 +24,12 @@ from stitching.blend import uniform_blend, union_blend
 class ImageStitch (object):
     def __init__ (self):
         self.pose = None
-        self.curr_img = None
         self.result = None
         self.bridge = CvBridge ()
         self.init = False
         self.detector = cv2.xfeatures2d.SURF_create (200)
         self.matcher = cv2.FlannBasedMatcher ()
-        self.height = None
+        self.height = 40
         self.count = 0
         self.dimensions = (1920, 1080)
         self.scale = 1
@@ -47,19 +46,19 @@ class ImageStitch (object):
         self.transformation_series = []
         self.position_data = []
 
-    def get_transformation (self, transformation_series, id, imageDataList):
-        trans = imageDataList[id]._transformation
-        for i in range (id, len (transformation_series)):
-            trans = np.dot (trans, transformation_series[i])
+    def get_transformation (self, id):
+        trans = self.imageDataList[id]._transformation
+        for i in range (id, len (self.transformation_series)):
+            trans = np.dot (trans, self.transformation_series[i])
         return trans
 
-    def get_neighbours (self, imageDataList, j, position_data, h):
-        x = imageDataList[j]._pose[1]
-        y = imageDataList[j]._pose[0]
+    def get_neighbours (self, id):
+        x = self.imageDataList[id]._pose[1]
+        y = self.imageDataList[id]._pose[0]
         w = 0.5 * h
 
         dist = []
-        for p in position_data:
+        for p in self.position_data:
             d = abs (p[0] - x) + 3 * abs (p[1] - y)
             dist.append (d)
 
@@ -69,7 +68,7 @@ class ImageStitch (object):
         totalx = totalx[:4]
 
         dist = []
-        for p in position_data:
+        for p in self.position_data:
             d = abs (p[1] - y) + 3 * abs (p[0] - x)
             dist.append (d)
 
@@ -108,14 +107,10 @@ class ImageStitch (object):
         except CvBridgeError as e:
             print (e)
 
-        self.combine (curr_img)
-
-    # to correct the rotation of the image
-    def transform (self, image):
-        pass
+        self.combine (curr_img, self.pose)
 
     # function to handle the images with low matches
-    def low_matches_handler (self, image):
+    def low_matches_handler (self, image, pose):
         pass
 
     def get_mask_corners (self, neighbours, id):
@@ -139,32 +134,40 @@ class ImageStitch (object):
         cv2.fillPoly (mask, mask_corners, ignore_mask_color)
         return mask
 
-    def draw_coners (self):
-        pass
+    def draw_coners (self, result):
+        temp = copy.copy (result)
 
-    def combine (self, data):
+        for i in range (len (self.imageDataList)):
+            corners = self.imageDataList[i]._corners
+            trans = self.get_transformation (i)
+            dst = cv2.perspectiveTransform(corners, trans)
+            dst = dst.astype('int32')
+            cv2.polylines(temp,[dst],True,(0,0,255))
+
+        return temp
+
+    def combine (self, data, pose):
         im = Image ()
 
         if self.init == False:
             self.init = True
             self.result = en.compress (data)
-            self.position_data.append (self.pose)
             im._id = self.count
             im._is_seed = True
             im._is_attached = True
             im._transformation = np.array ([[1,0,0],[0,1,0],[0,0,1]])
-            self.position_data.append (self.pose[:3])
+            self.position_data.append (pose[:3])
             self.imageDataList.append (im)
             self.count += 1
             return
 
         image = en.compress (data)
-        M = gm.computeUnRotMatrix (self.pose)
-        correctedImage, corners = gm.warpPerspectiveWithPadding (image, M)
+        M = gm.computeUnRotMatrix (pose)
+        image, corners = gm.warpPerspectiveWithPadding (image, M)
         im._id = self.count
         im._corners = corners
-        im._pose = self.pose
-        self.position_data.append (self.pose[:3])
+        im._pose = pose
+        self.position_data.append (pose[:3])
 
         total = self.get_neighbours (im._id)
         mask_corners = self.get_mask_corners (total, im._id)
@@ -187,25 +190,25 @@ class ImageStitch (object):
         for m, n in matches:
             if m.distance < 0.55 * n.distance:
                 good.append(m)
-        print (str(len(good)) + " Matches were Found")
+        print (str (len (good)) + " Matches were Found")
 
         if (len (good)) <= 100:
-            self.low_matches_handler ()
+            self.low_matches_handler (image, pose)
 
         matches = copy.copy (good)
 
-        src_match = np.float32([ kp2[m.queryIdx].pt for m in matches ])
-        dst_match = np.float32([ kp1[m.trainIdx].pt for m in matches ])
+        src_match = np.float32 ([kp_im[m.queryIdx].pt for m in matches])
+        dst_match = np.float32 ([kp_re[m.trainIdx].pt for m in matches])
 
-        src_pts = src_match.reshape(-1,1,2)
-        dst_pts = dst_match.reshape(-1,1,2)
+        src_pts = src_match.reshape (-1,1,2)
+        dst_pts = dst_match.reshape (-1,1,2)
 
         ransac = RANSAC ()
         final_src, final_dst = ransac.thread (src_match, dst_match, 50)
         h_agent = Homography ()
         gh = h_agent.global_homography (final_src, final_dst)
 
-        HomogResult = cv2.findHomography(src_pts,dst_pts,method=cv2.RANSAC)
+        HomogResult = cv2.findHomography (src_pts,dst_pts,method=cv2.RANSAC)
         H = HomogResult[0]
         H = gh
 
@@ -213,19 +216,19 @@ class ImageStitch (object):
         mesh = get_mesh ((final_w, final_h), self.mesh_size + 1)
         vertices = get_vertice ((final_w, final_h), self.mesh_size, (offset_x, offset_y))
 
-        stitcher = Apap (0, [final_w, final_h], [offset_x, offset_y], scale)
+        stitcher = Apap (0, [final_w, final_h], [offset_x, offset_y], 1)
         local_homography_im = np.zeros ([final_h, final_w, 3, 3], dtype=np.float)
         local_homography_im[:,:] = H
         stitcher.local_homography2 (final_src, final_dst, vertices, local_homography_im)
 
-        translation = np.float32(([1,0,offset_x],[0,1,offset_y],[0,0,1]))
-        fullTransformation = np.dot(translation, H)
+        translation = np.float32 (([1,0,offset_x],[0,1,offset_y],[0,0,1]))
+        fullTransformation = np.dot (translation, H)
 
-        warpedImage = np.zeros([final_h, final_w, 3], dtype=np.uint8)
+        warpedImage = np.zeros ([final_h, final_w, 3], dtype=np.uint8)
         stitcher.local_warp2 (image, local_homography_im, warpedImage)
 
-        warpedResImg = cv2.warpPerspective(self.result, translation, (final_w, final_h))
-        self.result = np.where(warpedImage != 0, warpedImage, warpedResImg)
+        warpedResImg = cv2.warpPerspective (self.result, translation, (final_w, final_h))
+        self.result = np.where (warpedImage != 0, warpedImage, warpedResImg)
 
         im._transformation = fullTransformation
         im._is_attached = True
@@ -233,6 +236,8 @@ class ImageStitch (object):
         self.transformation_series.append (translation)
         self.imageDataList.append (im)
         self.position_data.append (im._pose[:3])
+        self.count += 1
+
         return
 
 if __name__ == '__main__':

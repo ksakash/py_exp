@@ -101,7 +101,7 @@ class ImageStitch (object):
 
         self.pose = [pos_x, pos_y, pos_z, yaw, roll, pitch]
 
-    def image_sb (self, data):
+    def image_cb (self, data):
         try:
             curr_img = self.bridge.imgmsg_to_cv2 (data, "bgr8")
         except CvBridgeError as e:

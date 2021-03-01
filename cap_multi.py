@@ -12,7 +12,9 @@ import cv2
 import time
 from squaternion import Quaternion
 
-vehicles = [0, 1, 2, 3]
+vehicles = [0, 1]
+
+initial_pos = [(0, 0), (5, 0)]
 
 image_filename = 'airsimImage.txt'
 file_handle = open (image_filename, 'w+')
@@ -23,8 +25,8 @@ def save_imu_pose (client, filename, id):
     imu_data = client.getImuData (vehicle_name=vehicle_name)
     state = client.getMultirotorState (vehicle_name=vehicle_name)
 
-    lon = state.kinematics_estimated.position.x_val
-    lat = state.kinematics_estimated.position.y_val
+    lon = state.kinematics_estimated.position.y_val + initial_pos[id][0] # x val
+    lat = state.kinematics_estimated.position.x_val + initial_pos[id][1] # y val
     alt = state.kinematics_estimated.position.z_val
 
     w = imu_data.orientation.w_val
@@ -83,3 +85,4 @@ while (True):
     for id in vehicles:
         save_image (client, tmp_dir, count, id)
         count += 1
+    time.sleep (0.3)

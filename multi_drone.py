@@ -9,7 +9,7 @@ import setup_path
 import tempfile
 import threading
 
-robots = [0, 1, 2, 3]
+robots = [0, 1]
 clients = []
 
 intial_pos = [(0, 0), (1, 0), (0, 1), (1, 1)]
@@ -42,7 +42,7 @@ def readInput (filename):
 h = 25
 image_width = 1920
 image_height = 1080
-unit_y = 0.4 * h
+unit_y = 0.2 * h
 unit_x = (image_height/image_width) * unit_y
 
 def perform_course ():
@@ -53,7 +53,7 @@ def perform_course ():
         waypoints.append (waypoint)
 
     num_points = len (waypoints[0])
-    max_speed = 1
+    max_speed = 2
     print ("no. of points:", num_points)
 
     for i in range (num_points):
@@ -61,8 +61,8 @@ def perform_course ():
         threads = []
         for id in robots:
             vehicle_name = "Drone" + str (id)
-            x = (waypoints[id][i][0] - intial_pos[id][0]) * unit_x
-            y = (waypoints[id][i][1] - intial_pos[id][1]) * unit_y
+            x = (waypoints[id][i][1] - intial_pos[id][1]) * unit_x
+            y = (waypoints[id][i][0] - intial_pos[id][0]) * unit_y
             z = -h
             print ("robot id:", id, "x:", x, "y:", y, "z:", z)
             threads.append (clients[id].moveToPositionAsync(x, y, z, \

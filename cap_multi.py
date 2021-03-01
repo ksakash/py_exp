@@ -85,4 +85,4 @@ while (True):
     for id in vehicles:
         save_image (client, tmp_dir, count, id)
         count += 1
-    time.sleep (0.3)
+    time.sleep (0.5)

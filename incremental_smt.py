@@ -40,9 +40,12 @@ map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
 
-local_map = np.zeros_like (map)
+local_map = np.full (map.shape, 0.5)
 
 print (map.shape)
 
@@ -83,7 +86,7 @@ for r in range (R):
     files.append (f)
 
 motion_w = 1 # cost of taking each step
-old_w = 1 # reward of visiting old grid first
+old_w = 3 # reward of visiting old grid first
 visible_w = 1 # reward of covering visible grids which are near
 not_covered_w = 1 # cost of covering already covered grid
 
@@ -223,9 +226,15 @@ while num_covered < total:
             files[r].write (s)
             files[r].flush ()
 
+    for obst in obstacles:
+        i = obst[1]
+        j = obst[0]
+        local_map[i][j] = 0.0
+
     print (local_map)
 
-    num_covered = np.count_nonzero (map == 0.0) + np.count_nonzero (map == 1.0)
+    print ("no. of 1s and 0s", np.count_nonzero (local_map == 1.0), len (obstacles))
+    num_covered = np.count_nonzero (local_map == 1.0) + len (obstacles)
 
     print ("no. of cells covered:", num_covered)
     print ("horizon:", k)

@@ -111,7 +111,11 @@ while num_covered < total:
 
     C = [[Int("c_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
 
-    s.add (total_c == Sum (Re + S[0] + S[1] + S[2] + S[3] + C[0] + C[1] + C[2] + C[3] + NC[0] + NC[1] + NC[2] + NC[3]))
+    total_cost_array = Re
+    for r in range (R):
+        total_cost_array += S[r] + C[r] + NC[r]
+
+    s.add (total_c == Sum (total_cost_array))
 
     for r in range (R):
         s.add (And (X[r][0] == start_x[r], Y[r][0] == start_y[r]))
@@ -149,12 +153,10 @@ while num_covered < total:
 
     # collision avoidance
     for t in range(0, T):
-        s.add(Or(X[0][t] != X[1][t], Y[0][t] != Y[1][t]))
-        s.add(Or(X[0][t] != X[2][t], Y[0][t] != Y[2][t]))
-        s.add(Or(X[0][t] != X[3][t], Y[0][t] != Y[3][t]))
-        s.add(Or(X[1][t] != X[2][t], Y[1][t] != Y[2][t]))
-        s.add(Or(X[1][t] != X[3][t], Y[1][t] != Y[3][t]))
-        s.add(Or(X[2][t] != X[3][t], Y[2][t] != Y[3][t]))
+        for r1 in range (R):
+            for r2 in range (R):
+                if (r1 != r2 and r1 < r2):
+                    s.add (Or(X[r1][t] != X[r2][t], Y[r1][t] != Y[r2][t]))
 
     safe = []
     for r in range (R):

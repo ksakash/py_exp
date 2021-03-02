@@ -51,7 +51,7 @@ print (map.shape)
 
 num_covered = 0
 total = map.shape[0] * map.shape[1]
-R = 4
+R = 2
 local_range = 1
 
 start_x = np.empty ((R,))
@@ -59,13 +59,13 @@ start_y = np.empty ((R,))
 
 start_x[0] = 0
 start_x[1] = 0
-start_x[2] = 2
-start_x[3] = 2
+# start_x[2] = 2
+# start_x[3] = 2
 
 start_y[0] = 0
 start_y[1] = 2
-start_y[2] = 0
-start_y[3] = 2
+# start_y[2] = 0
+# start_y[3] = 2
 
 dimension_x = map.shape[1]
 dimension_y = map.shape[0]
@@ -86,9 +86,11 @@ for r in range (R):
     files.append (f)
 
 motion_w = 1 # cost of taking each step
-old_w = 3 # reward of visiting old grid first
+old_w = 5 # reward of visiting old grid first
 visible_w = 1 # reward of covering visible grids which are near
 not_covered_w = 1 # cost of covering already covered grid
+
+visible_dict = {}
 
 while num_covered < total:
     for r in range (R):
@@ -124,8 +126,13 @@ while num_covered < total:
     print ("obstacles:", obstacles)
     print ("visible:", visible)
 
+    '''
     for i in range (num_visible):
-        s.add (Or (And (Re[i] <= old_w * num_visible, Re[i] >= 0), Re[i] == 200))
+        s.add (Or (And (Re[i] <= old_w * num_visible, Re[i] >= 0), Re[i] == 100))
+    '''
+
+    for i in range (num_visible):
+        s.add (Or (And (Re[i] <= 0, Re[i] >= -200), Re[i] == 100))
 
     # obstacle avoidance
     for r in range (R):
@@ -168,12 +175,30 @@ while num_covered < total:
         for t in range (T):
             s.add (Or ([And (X[r][t] == x, Y[r][t] == y) for (x, y) in safe]))
 
+    for (x,y) in visible:
+        if (x,y) not in visible_dict:
+            visible_dict[(x,y)] = 0
+        else:
+            if visible_dict[(x,y)] > -200:
+                visible_dict[(x,y)] -= old_w
+            else:
+                visible_dict[(x,y)] = -200
+
+    # cover as many visible space as possible
+    count = 0
+    for (x,y) in visible:
+        s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)]), Re[count] == visible_dict[(x,y)]))
+        s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)])), Re[count] == 100))
+        count += 1
+
+    '''
     # cover as many visible space as possible
     count = 0
     for (x,y) in visible:
         s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)]), Re[count] == old_w * count))
-        s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)])), Re[count] == 200))
+        s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)])), Re[count] == 100))
         count += 1
+    '''
 
     # if lost then the robot should gravitate towards the visible grids
     for r in range (R):
@@ -217,6 +242,7 @@ while num_covered < total:
             covered.append ((j,i))
             if ((j,i) in visible):
                 visible.remove ((j,i))
+                visible_dict.pop ((j,i))
 
     # fill the visible array from the trajectory that robot followed
     for r in range (R):

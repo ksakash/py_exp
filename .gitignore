@@ -11,3 +11,6 @@ waypoints_*
 robot*
 list_*
 command_list.txt
+precaution_list.txt
+components_for_experiment.txt
+

@@ -34,8 +34,8 @@ def safe_space (x_, y_, l, map):
 map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.0,0.0,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.0,0.0,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
@@ -52,18 +52,20 @@ print (map.shape)
 num_covered = 0
 total = map.shape[0] * map.shape[1]
 R = 2
+T = 4
+
 local_range = 1
 
 start_x = np.empty ((R,))
 start_y = np.empty ((R,))
 
 start_x[0] = 0
-start_x[1] = 0
+start_x[1] = 1
 # start_x[2] = 2
 # start_x[3] = 2
 
 start_y[0] = 0
-start_y[1] = 2
+start_y[1] = 0
 # start_y[2] = 0
 # start_y[3] = 2
 
@@ -86,9 +88,9 @@ for r in range (R):
     files.append (f)
 
 motion_w = 1 # cost of taking each step
-old_w = 5 # reward of visiting old grid first
-visible_w = 1 # reward of covering visible grids which are near
-not_covered_w = 1 # cost of covering already covered grid
+old_w = 15 # reward of visiting old grid first
+visible_w = 2 # reward of covering visible grids which are near
+not_covered_w = 5 # cost of covering already covered grid
 
 visible_dict = {}
 
@@ -98,7 +100,6 @@ while num_covered < total:
 
     num_visible = len (visible)
 
-    T = 4
     s = Optimize ()
     total_c = Int ('total_c')
     total_re = Int ('total_re')
@@ -146,7 +147,7 @@ while num_covered < total:
 
             s.add (And (P[r][t] < 5, P[r][t] >= 0))
             s.add (Or (C[r][t] == 3 * motion_w, C[r][t] == 5 * motion_w))
-            s.add (And (S[r][t] >= 0, S[r][t] <= 32))
+            s.add (And (S[r][t] >= 0, S[r][t] <= visible_w * (dimension_x + dimension_y)))
             s.add (Or (NC[r][t] == not_covered_w, NC[r][t] == 0))
 
     # motion primitives

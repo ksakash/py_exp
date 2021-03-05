@@ -72,12 +72,15 @@ time.sleep (5)
 
 pose.pose.position.x = 0
 pose.pose.position.y = 0
-pose.pose.position.z = 2
+pose.pose.position.z = 3
 
 print ("publishing target pos on the local pose topic ..")
-for i in range (400):
-    local_pos_pub.publish (pose)
-    rate.sleep ()
+
+local_pos_pub.publish (pose)
+t = 10
+time.time (t)
+
+print ("completed the test!!")
 
 land_client = rospy.ServiceProxy ("mavros/cmd/land", CommandTOL)
 land_res = land_client ()

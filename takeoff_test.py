@@ -56,7 +56,7 @@ else:
     sys.exit (-1)
 
 takeoff_client = rospy.ServiceProxy ("mavros/cmd/takeoff", CommandTOL)
-takeoff_res = takeoff_client (altitude=1.5)
+takeoff_res = takeoff_client (altitude=3)
 
 if takeoff_res.success:
     print ("takeoff sent", takeoff_res.success)

@@ -34,8 +34,8 @@ def readInput (filename):
     arr = []
 
     for line in lines:
-        (x, y, z) = (int (line.split(' ')[0]), int (line.split(' ')[1]), int (line.split(' ')[2]))
-        arr.append ((x, y, z))
+        (x, y) = (int (line.split(' ')[0]), int (line.split(' ')[1]))
+        arr.append ((x, y))
 
     return arr
 

@@ -3,6 +3,11 @@
 from z3 import *
 import numpy as np
 
+from matplotlib import pyplot as plt
+from matplotlib.patches import Rectangle
+
+import copy
+
 def fill_obstacle_tocover (x_, y_, obstacles, visible, l, map):
     dimension_x = map.shape[1]
     dimension_y = map.shape[0]
@@ -31,11 +36,37 @@ def safe_space (x_, y_, l, map):
                 arr.append ((x,y))
     return arr
 
+def get_rec (x, y, t, alpha):
+    color = ''
+    if t == 'covered':
+        color = 'yellow'
+    elif t == 'visible':
+        color = 'green'
+    elif t == 'obstacle':
+        color = 'black'
+    elif t == 'positions':
+        color = 'blue'
+    else:
+        color = 'gray'
+
+    rec = Rectangle ((x,y), 1, 1, linewidth=1, edgecolor='black', facecolor=color, alpha=alpha)
+    return rec
+
+def draw_rec (ax, arr, t, alpha):
+    for (x,y) in arr:
+        rect = get_rec (x, y, t, alpha)
+        ax.add_patch (rect)
+
+def visualize (ax, visible_array, obstacle_array, covered_array, alpha):
+    draw_rec (ax, visible_array, 'visible', alpha)
+    draw_rec (ax, obstacle_array, 'obstacle', alpha)
+    draw_rec (ax, covered_array, 'covered', alpha)
+
 map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.0,0.0,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.0,0.0,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
@@ -60,7 +91,7 @@ start_x = np.empty ((R,))
 start_y = np.empty ((R,))
 
 start_x[0] = 0
-start_x[1] = 1
+start_x[1] = 2
 # start_x[2] = 2
 # start_x[3] = 2
 
@@ -76,8 +107,15 @@ obstacles = []
 visible = []
 covered = []
 
+obstacles_added = []
+visible_added = []
+covered_added = []
+
 for r in range (R):
     fill_obstacle_tocover (start_x[r], start_y[r], obstacles, visible, local_range, map)
+
+visible_added = visible
+obstacles_added = obstacles
 
 k = 0
 files = []
@@ -94,7 +132,31 @@ not_covered_w = 5 # cost of covering already covered grid
 
 visible_dict = {}
 
+fig, ax = plt.subplots (figsize=(dimension_x, dimension_y))
+ax.set (xlim=(0,dimension_x), ylim=(0,dimension_y))
+ax.axis ('off')
+alpha = 1
+
+uncovered = []
+for x in range (dimension_x):
+    for y in range (dimension_y):
+        uncovered.append ((x,y))
+
+draw_rec (ax, uncovered, 'uncovered', alpha)
+prev_positions = []
+
 while num_covered < total:
+
+    print ("obstacles added:",obstacles_added)
+    print ("covered added:",covered_added)
+    print ("visible added:",visible_added)
+
+    visualize (ax, visible_added, obstacles_added, covered_added, alpha)
+    positions = [(start_x[r], start_y[r]) for r in range (R)]
+    draw_rec (ax, prev_positions, 'covered', alpha)
+    draw_rec (ax, positions, 'positions', alpha)
+    prev_positions = copy.copy (positions)
+
     for r in range (R):
         print ("robot " + str (r) + ":", start_x[r], start_y[r])
 
@@ -233,6 +295,12 @@ while num_covered < total:
         start_x[r] = int (str (model[X[r][T-1]]))
         start_y[r] = int (str (model[Y[r][T-1]]))
 
+    covered_added = []
+    visible_added = []
+    obstacles_added = []
+    temp_obst = copy.copy (obstacles)
+    temp_visible = copy.copy (visible)
+
     # remove the grids already covered
     for r in range (R):
         for t in range (T):
@@ -240,6 +308,8 @@ while num_covered < total:
             j = int (str (model[X[r][t]]))
             local_map[i][j] = 1.0
             map[i][j] = 1.0
+            if (j, i) not in covered:
+                covered_added.append ((j,i))
             covered.append ((j,i))
             if ((j,i) in visible):
                 visible.remove ((j,i))
@@ -255,10 +325,17 @@ while num_covered < total:
             files[r].write (s)
             files[r].flush ()
 
+    for v in visible:
+        if v not in temp_visible:
+            visible_added.append (v)
+
     for obst in obstacles:
         i = obst[1]
         j = obst[0]
         local_map[i][j] = 0.0
+
+        if obst not in temp_obst:
+            obstacles_added.append (obst)
 
     print (local_map)
 
@@ -269,6 +346,8 @@ while num_covered < total:
     print ("horizon:", k)
 
     k += 1
+
+    plt.pause (1)
 
 for f in files:
     f.close ()

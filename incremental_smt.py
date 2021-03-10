@@ -90,7 +90,7 @@ print (map.shape)
 
 num_covered = 0
 total = map.shape[0] * map.shape[1]
-R = 1
+R = 2
 T = 4
 
 local_range = 1
@@ -99,12 +99,12 @@ start_x = np.empty ((R,))
 start_y = np.empty ((R,))
 
 start_x[0] = 0
-# start_x[1] = 1
+start_x[1] = 1
 # start_x[2] = 0
 # start_x[3] = 2
 
 start_y[0] = 0
-# start_y[1] = 0
+start_y[1] = 0
 # start_y[2] = 1
 # start_y[3] = 2
 
@@ -137,7 +137,7 @@ motion_w = 2 # cost of taking each step
 old_w = 50 # reward of visiting old grid first
 visible_w = 2 # cost of covering visible grids which are near
 not_covered_w = 5 # cost of covering already covered grid
-n_neighbors = 15
+n_neighbors = 5
 old_limit = 400
 visible_dict = {}
 

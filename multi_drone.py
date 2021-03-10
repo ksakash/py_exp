@@ -11,7 +11,7 @@ import threading
 import time
 from squaternion import Quaternion
 
-robots = [0, 1]
+robots = [0]
 clients = []
 
 intial_pos = [(0, 0), (1, 0), (0, 1), (1, 1)]
@@ -48,7 +48,7 @@ def readInput (filename):
 h = 25
 image_width = 1920
 image_height = 1080
-unit_y = 0.2 * h
+unit_y = 0.4 * h
 unit_x = (image_height/image_width) * unit_y
 
 def save_imu_pose (client, filename, id):
@@ -120,7 +120,7 @@ def perform_course (tmp_dir):
             x = (waypoints[id][i][1] - intial_pos[id][1]) * unit_x
             y = (waypoints[id][i][0] - intial_pos[id][0]) * unit_y
             z = -h
-            print ("robot id:", id, "x:", x, "y:", y, "z:", z)
+            print ("robot id:", id, "x:", y, "y:", x, "z:", z)
             threads.append (clients[id].moveToPositionAsync(x, y, z, \
                             max_speed, vehicle_name=vehicle_name))
 

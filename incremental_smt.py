@@ -62,19 +62,27 @@ def visualize (ax, visible_array, obstacle_array, covered_array, alpha):
     draw_rec (ax, obstacle_array, 'obstacle', alpha)
     draw_rec (ax, covered_array, 'covered', alpha)
 
-map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.0,0.0,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.0,0.0,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
+map = np.array ([[0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5]])
 
 local_map = np.full (map.shape, 0.5)
 
@@ -82,7 +90,7 @@ print (map.shape)
 
 num_covered = 0
 total = map.shape[0] * map.shape[1]
-R = 2
+R = 1
 T = 4
 
 local_range = 1
@@ -91,12 +99,12 @@ start_x = np.empty ((R,))
 start_y = np.empty ((R,))
 
 start_x[0] = 0
-start_x[1] = 2
+# start_x[1] = 1
 # start_x[2] = 2
 # start_x[3] = 2
 
 start_y[0] = 0
-start_y[1] = 0
+# start_y[1] = 0
 # start_y[2] = 0
 # start_y[3] = 2
 
@@ -126,7 +134,7 @@ for r in range (R):
     files.append (f)
 
 motion_w = 1 # cost of taking each step
-old_w = 15 # reward of visiting old grid first
+old_w = 40 # reward of visiting old grid first
 visible_w = 2 # reward of covering visible grids which are near
 not_covered_w = 5 # cost of covering already covered grid
 
@@ -145,11 +153,15 @@ for x in range (dimension_x):
 draw_rec (ax, uncovered, 'uncovered', alpha)
 prev_positions = []
 
+prev_coord = []
+for r in range (R):
+    prev_coord.append (None)
+
 while num_covered < total:
 
-    print ("obstacles added:",obstacles_added)
-    print ("covered added:",covered_added)
-    print ("visible added:",visible_added)
+    # print ("obstacles added:",obstacles_added)
+    # print ("covered added:",covered_added)
+    # print ("visible added:",visible_added)
 
     visualize (ax, visible_added, obstacles_added, covered_added, alpha)
     positions = [(start_x[r], start_y[r]) for r in range (R)]
@@ -186,8 +198,8 @@ while num_covered < total:
         s.add (And (X[r][0] == start_x[r], Y[r][0] == start_y[r]))
         s.add (Or (X[r][T-1] != start_x[r], Y[r][T-1] != start_y[r]))
 
-    print ("obstacles:", obstacles)
-    print ("visible:", visible)
+    # print ("obstacles:", obstacles)
+    # print ("visible:", visible)
 
     '''
     for i in range (num_visible):
@@ -321,9 +333,12 @@ while num_covered < total:
             i = int (str (model[Y[r][t]]))
             j = int (str (model[X[r][t]]))
             fill_obstacle_tocover (j, i, obstacles, visible, local_range, map)
+            if (j,i) == prev_coord[r]:
+                continue
             s = str (j) + " " + str (i) + "\n"
             files[r].write (s)
             files[r].flush ()
+            prev_coord[r] = (j,i)
 
     for v in visible:
         if v not in temp_visible:
@@ -337,9 +352,10 @@ while num_covered < total:
         if obst not in temp_obst:
             obstacles_added.append (obst)
 
-    print (local_map)
+    # print (local_map)
+    # print (visible_dict)
 
-    print ("no. of 1s and 0s", np.count_nonzero (local_map == 1.0), len (obstacles))
+    # print ("no. of 1s and 0s", np.count_nonzero (local_map == 1.0), len (obstacles))
     num_covered = np.count_nonzero (local_map == 1.0) + len (obstacles)
 
     print ("no. of cells covered:", num_covered)
@@ -347,7 +363,7 @@ while num_covered < total:
 
     k += 1
 
-    plt.pause (1)
+    plt.pause (0.01)
 
 for f in files:
     f.close ()

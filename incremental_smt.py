@@ -62,27 +62,27 @@ def visualize (ax, visible_array, obstacle_array, covered_array, alpha):
     draw_rec (ax, obstacle_array, 'obstacle', alpha)
     draw_rec (ax, covered_array, 'covered', alpha)
 
-map = np.array ([[0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5]])
+map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
 
 local_map = np.full (map.shape, 0.5)
 
@@ -100,12 +100,12 @@ start_y = np.empty ((R,))
 
 start_x[0] = 0
 # start_x[1] = 1
-# start_x[2] = 2
+# start_x[2] = 0
 # start_x[3] = 2
 
 start_y[0] = 0
 # start_y[1] = 0
-# start_y[2] = 0
+# start_y[2] = 1
 # start_y[3] = 2
 
 dimension_x = map.shape[1]
@@ -133,11 +133,12 @@ for r in range (R):
     f = open (filename, 'w+')
     files.append (f)
 
-motion_w = 1 # cost of taking each step
-old_w = 40 # reward of visiting old grid first
-visible_w = 2 # reward of covering visible grids which are near
+motion_w = 2 # cost of taking each step
+old_w = 50 # reward of visiting old grid first
+visible_w = 2 # cost of covering visible grids which are near
 not_covered_w = 5 # cost of covering already covered grid
-
+n_neighbors = 15
+old_limit = 400
 visible_dict = {}
 
 fig, ax = plt.subplots (figsize=(dimension_x, dimension_y))
@@ -157,7 +158,7 @@ prev_coord = []
 for r in range (R):
     prev_coord.append (None)
 
-while num_covered < total:
+while num_covered < 0.97 * total:
 
     # print ("obstacles added:",obstacles_added)
     # print ("covered added:",covered_added)
@@ -207,7 +208,7 @@ while num_covered < total:
     '''
 
     for i in range (num_visible):
-        s.add (Or (And (Re[i] <= 0, Re[i] >= -200), Re[i] == 100))
+        s.add (Or (And (Re[i] <= 0, Re[i] >= -old_limit), Re[i] == 100))
 
     # obstacle avoidance
     for r in range (R):
@@ -254,10 +255,10 @@ while num_covered < total:
         if (x,y) not in visible_dict:
             visible_dict[(x,y)] = 0
         else:
-            if visible_dict[(x,y)] > -200:
+            if visible_dict[(x,y)] > -old_limit:
                 visible_dict[(x,y)] -= old_w
             else:
-                visible_dict[(x,y)] = -200
+                visible_dict[(x,y)] = -old_limit
 
     # cover as many visible space as possible
     count = 0
@@ -280,9 +281,19 @@ while num_covered < total:
         for t in range (T):
             for (x,y) in safe:
                 cost = 0
+                arr = copy.copy (visible)
+                arr = np.array (arr)
+                dist = abs (arr[:,0] - x) + abs (arr[:,1] - y)
+                ind = dist.argsort ()[:n_neighbors]
+                dist = dist[ind]
+                for item in dist:
+                    cost += item
+                '''
                 for i in range (num_visible):
                     cost += (abs (visible[i][0] - x) + abs (visible[i][1] - y))
                 cost = visible_w * int (cost / num_visible)
+                '''
+                cost = visible_w * int (cost / dist.shape[0])
                 s.add (Implies (And (X[r][t] == x, Y[r][t] == y), S[r][t] == cost))
 
     for r in range (R):

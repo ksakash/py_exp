@@ -29,7 +29,7 @@ class ImageStitch (object):
         self.init = False
         self.detector = cv2.xfeatures2d.SURF_create (200)
         self.matcher = cv2.FlannBasedMatcher ()
-        self.height = 40
+        self.height = 25
         self.count = 0
         self.dimensions = (1920, 1080)
         self.scale = 1
@@ -37,7 +37,7 @@ class ImageStitch (object):
 
         # subscribe to data coming from the quadcopter
         self.pose_sub = rospy.Subscriber ("mavros/local_position/pose", PoseStamped, self.pose_cb)
-        self.image_sub = rospy.Subscriber ("iris/usb_cam/image_raw", Image, self.image_cb)
+        self.image_sub = rospy.Subscriber ("iris/usb_cam/image_raw", Image, self.image_cb, queue_size=1)
 
         # to talk to the controller
         self.pose_pub = rospy.Publisher ("mavros/setpoint_position/local", PoseStamped, queue_size=10, latch=True)
@@ -171,7 +171,7 @@ class ImageStitch (object):
 
         total = self.get_neighbours (im._id)
         mask_corners = self.get_mask_corners (total, im._id)
-        mask_re = self.get_mask (mask_corners, image.shape[:2])
+        mask_re = self.get_mask (mask_corners, self.result.shape[:2])
 
         gray_im = cv2.cvtColor (image, cv2.COLOR_BGR2GRAY)
         _, mask_im = cv2.threshold (gray_im, 1, 255, cv2.THRESH_BINARY)
@@ -210,7 +210,7 @@ class ImageStitch (object):
 
         HomogResult = cv2.findHomography (src_pts,dst_pts,method=cv2.RANSAC)
         H = HomogResult[0]
-        H = gh
+        # H = gh
 
         final_w, final_h, offset_x, offset_y = final_size (image, self.result, H)
         mesh = get_mesh ((final_w, final_h), self.mesh_size + 1)

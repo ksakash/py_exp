@@ -12,6 +12,7 @@ import JPEGEncoder as en
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Pose, PoseStamped
 from sensor_msgs.msg import Image as ROSImage
+from laser_pkg.msg import ImagePose
 from squaternion import Quaternion
 
 from image import Image
@@ -39,8 +40,9 @@ class ImageStitch (object):
         self.mesh_size = 50
 
         # subscribe to data coming from the quadcopter
-        self.pose_sub = rospy.Subscriber ("/image_pose", PoseStamped, self.pose_cb)
-        self.image_sub = rospy.Subscriber ("/image_stitching", ROSImage, self.image_cb, queue_size=5)
+        self.pose_sub = rospy.Subscriber ("/pose", PoseStamped, self.pose_cb)
+        self.image_sub = rospy.Subscriber ("/image", ROSImage, self.image_cb, queue_size=5)
+        self.sub = rospy.Subscriber ("/image_pose", ImagePose, self.cb, queue_size=5)
 
         # to talk to the controller
         self.pose_pub = rospy.Publisher ("mavros/setpoint_position/local", PoseStamped, queue_size=10, latch=True)
@@ -157,6 +159,32 @@ class ImageStitch (object):
             cv2.polylines(temp,[dst],True,(0,0,255))
 
         return temp
+
+    def cb (self, data):
+        try:
+            curr_img = self.bridge.imgmsg_to_cv2 (data.image, "bgr8")
+        except CvBridgeError as e:
+            print (e)
+
+        w = data.pose.pose.orientation.w
+        x = data.pose.pose.orientation.x
+        y = data.pose.pose.orientation.y
+        z = data.pose.pose.orientation.z
+
+        pos_x = data.pose.pose.position.x
+        pos_y = data.pose.pose.position.y
+        pos_z = data.pose.pose.position.z
+
+        q = Quaternion (w, x, y, z)
+        e = q.to_euler (degrees=True)
+        roll = float (e[0])
+        pitch = float (e[1])
+        yaw = float (e[2])
+
+        self.pose = [pos_x, pos_y, pos_z, yaw, roll, pitch]
+
+        print ("pose:", self.pose)
+        self.combine (curr_img, self.pose)
 
     def combine (self, data, pose):
         im = Image ()

@@ -42,7 +42,7 @@ class ImageStitch (object):
         # subscribe to data coming from the quadcopter
         self.pose_sub = rospy.Subscriber ("/pose", PoseStamped, self.pose_cb)
         self.image_sub = rospy.Subscriber ("/image", ROSImage, self.image_cb, queue_size=5)
-        self.sub = rospy.Subscriber ("/image_pose", ImagePose, self.cb, queue_size=5)
+        self.sub = rospy.Subscriber ("/image_pose", ImagePose, self.cb, queue_size=50)
 
         # to talk to the controller
         self.pose_pub = rospy.Publisher ("mavros/setpoint_position/local", PoseStamped, queue_size=10, latch=True)

@@ -40,7 +40,7 @@ if __name__ == '__main__':
         msg.pose = pose
         msg.image = image
 
-        pub.publish ()
+        pub.publish (msg)
 
         count += 1
         time.sleep (4.0)

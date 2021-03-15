@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
+import sys
+sys.path.append ('/home/ksakash/misc/drone_image_stitching')
+sys.path.append ('/home/ksakash/projects/APAP-Image-Stitching')
+
 import cv2
+import copy
 import rospy
 import numpy as np
 import JPEGEncoder as en
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Pose, PoseStamped
-from sensor_msgs.msg import Image
-
-import sys
-sys.path.append ('~/misc/drone_image_stitching')
-sys.path.append ('~/projects/APAP-Image-Stitching')
+from sensor_msgs.msg import Image as ROSImage
+from squaternion import Quaternion
 
 from image import Image
 import geometry as gm
@@ -20,6 +22,7 @@ from feature.ransac import RANSAC
 from stitching.homography import Homography, final_size
 from stitching.apap import Apap
 from stitching.blend import uniform_blend, union_blend
+from utils.mesh import get_mesh, get_vertice
 
 class ImageStitch (object):
     def __init__ (self):
@@ -36,8 +39,8 @@ class ImageStitch (object):
         self.mesh_size = 50
 
         # subscribe to data coming from the quadcopter
-        self.pose_sub = rospy.Subscriber ("mavros/local_position/pose", PoseStamped, self.pose_cb)
-        self.image_sub = rospy.Subscriber ("iris/usb_cam/image_raw", Image, self.image_cb, queue_size=1)
+        self.pose_sub = rospy.Subscriber ("/image_pose", PoseStamped, self.pose_cb)
+        self.image_sub = rospy.Subscriber ("/image_stitching", ROSImage, self.image_cb, queue_size=5)
 
         # to talk to the controller
         self.pose_pub = rospy.Publisher ("mavros/setpoint_position/local", PoseStamped, queue_size=10, latch=True)
@@ -53,8 +56,10 @@ class ImageStitch (object):
         return trans
 
     def get_neighbours (self, id):
-        x = self.imageDataList[id]._pose[1]
-        y = self.imageDataList[id]._pose[0]
+        x = self.imageDataList[id]._pose[0]
+        y = self.imageDataList[id]._pose[1]
+
+        h = self.height
         w = 0.5 * h
 
         dist = []
@@ -63,9 +68,11 @@ class ImageStitch (object):
             dist.append (d)
 
         dist = np.array (dist)
+        dist_ind = dist.argsort ()
+        dist.sort ()
         totalx = np.where (np.logical_and (dist <= h, dist <= h))[0]
-
-        totalx = totalx[:4]
+        totalx = dist_ind[totalx]
+        totalx = totalx[:3]
 
         dist = []
         for p in self.position_data:
@@ -73,9 +80,11 @@ class ImageStitch (object):
             dist.append (d)
 
         dist = np.array (dist)
+        dist_ind = dist.argsort ()
+        dist.sort ()
         totaly = np.where (np.logical_and (dist <= w, dist <= w))[0]
-
-        totaly = totaly[:4]
+        totaly = dist_ind[totaly]
+        totaly = totaly[:3]
 
         total = np.union1d (totalx, totaly)
 
@@ -106,7 +115,9 @@ class ImageStitch (object):
             curr_img = self.bridge.imgmsg_to_cv2 (data, "bgr8")
         except CvBridgeError as e:
             print (e)
+            sys.exit (-1)
 
+        print ("pose:", self.pose)
         self.combine (curr_img, self.pose)
 
     # function to handle the images with low matches
@@ -123,7 +134,8 @@ class ImageStitch (object):
             temp = [(dst[0][0][0], dst[0][0][1]),(dst[1][0][0], dst[1][0][1]),\
                     (dst[2][0][0], dst[2][0][1]),(dst[3][0][0], dst[3][0][1])]
             mask_corners += temp
-        mask_corners = mask_corners.astype ('int32')
+        # print (mask_corners)
+        mask_corners = np.array (mask_corners, dtype=np.int32)
         return mask_corners
 
     def get_mask (self, mask_corners, shape):
@@ -156,6 +168,10 @@ class ImageStitch (object):
             im._is_seed = True
             im._is_attached = True
             im._transformation = np.array ([[1,0,0],[0,1,0],[0,0,1]])
+            im._pose = pose[:3]
+            M = gm.computeUnRotMatrix (pose)
+            self.result, corners = gm.warpPerspectiveWithPadding (self.result, M)
+            im._corners = corners
             self.position_data.append (pose[:3])
             self.imageDataList.append (im)
             self.count += 1
@@ -167,20 +183,21 @@ class ImageStitch (object):
         im._id = self.count
         im._corners = corners
         im._pose = pose
-        self.position_data.append (pose[:3])
-
+        # self.position_data.append (im._pose[:3])
+        self.imageDataList.append (im)
         total = self.get_neighbours (im._id)
+        print (self.count, "neighbors:", total)
         mask_corners = self.get_mask_corners (total, im._id)
         mask_re = self.get_mask (mask_corners, self.result.shape[:2])
 
         gray_im = cv2.cvtColor (image, cv2.COLOR_BGR2GRAY)
         _, mask_im = cv2.threshold (gray_im, 1, 255, cv2.THRESH_BINARY)
-        kp_im, desc_im = detector.detectAndCompute (gray_im, mask_im)
+        kp_im, desc_im = self.detector.detectAndCompute (gray_im, mask_im)
 
         print ("No. of keypoints in the image:", len (kp_im))
 
         gray_re = cv2.cvtColor (self.result, cv2.COLOR_BGR2GRAY)
-        kp_re, desc_re = detector.detectAndCompute (gray_re, mask_re)
+        kp_re, desc_re = self.detector.detectAndCompute (gray_re, mask_re)
 
         print ("No. of keypoints in the result:", len (kp_re))
 
@@ -230,12 +247,15 @@ class ImageStitch (object):
         warpedResImg = cv2.warpPerspective (self.result, translation, (final_w, final_h))
         self.result = np.where (warpedImage != 0, warpedImage, warpedResImg)
 
-        im._transformation = fullTransformation
-        im._is_attached = True
+        # im._transformation = fullTransformation
+        # im._is_attached = True
+        self.imageDataList[im._id]._transformation = fullTransformation
+        self.imageDataList[im._id]._is_attached = True
 
         self.transformation_series.append (translation)
-        self.imageDataList.append (im)
+        # self.imageDataList.append (im)
         self.position_data.append (im._pose[:3])
+        cv2.imwrite ('temp/finalImage' + str (self.count) + '.jpg', self.result)
         self.count += 1
 
         return

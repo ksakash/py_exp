@@ -78,7 +78,7 @@ print ("publishing target pos on the local pose topic ..")
 
 local_pos_pub.publish (pose)
 t = 10
-time.time (t)
+time.sleep (t)
 
 print ("completed the test!!")
 

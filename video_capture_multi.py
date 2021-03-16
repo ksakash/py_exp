@@ -91,6 +91,9 @@ while (cap0.isOpened() or cap1.isOpened() or cap2.isOpened() or \
         if len (image_de) > queue_len:
             image_de.popleft ()
 
+    if len (image_de) == 0:
+        break
+
     frame = image_de.popleft ()
     image = bridge.cv2_to_imgmsg (frame, encoding="bgr8")
     msg = ImagePose ()

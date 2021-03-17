@@ -31,3 +31,9 @@
 
 -> smt.py : to output a optimized path for area coverage using smt
 -> incremental_smt.py : to solve the coverage incrementally and plot it
+
+# REAL-TIME video capturing
+
+-> video_capture.py : to capture video from herelink and publish it on a ros topic
+-> geotag.py : to sync the odometry data with video images
+-> cap_video_stream.py : to save all the images from video stream with the odom values

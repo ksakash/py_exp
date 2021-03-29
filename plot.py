@@ -23,7 +23,8 @@ x_arr = []
 y_arr = []
 
 for r in range (R):
-    filename = 'robot' + str (r) + '.plan'
+    # filename = 'robot' + str (r) + '.plan'
+    filename = 'waypoints_' + str (r)
     (x, y) = readInput (filename)
     x_arr.append (x)
     y_arr.append (y)
@@ -39,9 +40,8 @@ for r in range (R):
     initialy.append (y_arr[r][0])
 
 plt.scatter (initialx, initialy, c=['r','b'])
-# plt.scatter (obsx, obsy, c=['k','k','k','k','k','k'])
 plt.ylim ((-1, 6))
-plt.xlim ((-1, 6))
+plt.xlim ((-1, 11))
 plt.pause (1)
 
 for i in range (0, len (x_arr[0]), 1):

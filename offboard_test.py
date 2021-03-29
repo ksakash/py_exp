@@ -72,7 +72,7 @@ time.sleep (5)
 
 pose.pose.position.x = 0
 pose.pose.position.y = 0
-pose.pose.position.z = 3
+pose.pose.position.z = 10
 
 print ("publishing target pos on the local pose topic ..")
 

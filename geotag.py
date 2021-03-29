@@ -6,7 +6,7 @@ import time
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 
-queue_size = 50
+queue_size = 3
 odometry_de = deque ()
 imu_de = deque ()
 

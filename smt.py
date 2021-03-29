@@ -1,7 +1,7 @@
 from z3 import *
 
 s = Optimize()
-T = 36
+T = 100
 R = 1
 total_c = Int ('total_c')
 
@@ -17,8 +17,8 @@ for r in range (R):
 
 s.add(total_c == Sum(total_cost))
 
-dimension_x = 6
-dimension_y = 6
+dimension_x = 10
+dimension_y = 10
 
 # Start Positions
 s.add(X[0][0] == 0)
@@ -47,9 +47,9 @@ for r in range(R):
         # stay within bounds
         s.add(And (X[r][t] < dimension_x, X[r][t] >= 0))
         s.add(And (Y[r][t] < dimension_y, Y[r][t] >= 0))
-        s.add(And (P[r][t] <= 8, P[r][t] >= 0))
+        s.add(And (P[r][t] <= 4, P[r][t] >= 0))
 
-        s.add (Or (C[r][t] == 1, C[r][t] == 2, C[r][t] == 5))
+        s.add (Or (C[r][t] == 1, C[r][t] == 2))
 
 # collision avoidance
 for t in range(0, T):
@@ -72,10 +72,6 @@ for r in range(0, R):
         s.add(Implies(P[r][t] == 2, And(X[r][t+1] == X[r][t], Y[r][t+1] == Y[r][t]+1, C[r][t] == 2))) # up
         s.add(Implies(P[r][t] == 3, And(X[r][t+1] == X[r][t], Y[r][t+1] == Y[r][t]-1, C[r][t] == 2))) # down
         s.add(Implies(P[r][t] == 4, And(X[r][t+1] == X[r][t]-1, Y[r][t+1] == Y[r][t], C[r][t] == 2))) # left
-        s.add(Implies(P[r][t] == 5, And(X[r][t+1] == X[r][t]+1, Y[r][t+1] == Y[r][t]+1, C[r][t] == 5)))
-        s.add(Implies(P[r][t] == 6, And(X[r][t+1] == X[r][t]-1, Y[r][t+1] == Y[r][t]-1, C[r][t] == 5)))
-        s.add(Implies(P[r][t] == 7, And(X[r][t+1] == X[r][t]-1, Y[r][t+1] == Y[r][t]+1, C[r][t] == 5)))
-        s.add(Implies(P[r][t] == 8, And(X[r][t+1] == X[r][t]+1, Y[r][t+1] == Y[r][t]-1, C[r][t] == 5)))
 
 h = s.minimize(total_c)
 
@@ -90,7 +86,7 @@ def generate_plan ():
         filename = 'robot' + str (r) + '.plan'
         f = open (filename, 'w+')
         for t in range (T):
-            coord = str (str (model[X[r][t]]) + " " + str (model[Y[r][t]]) + " 2\n")
+            coord = str (str (model[X[r][t]]) + " " + str (model[Y[r][t]]) + " 10\n")
             f.write (coord)
             f.flush ()
         f.close()

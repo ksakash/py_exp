@@ -42,7 +42,7 @@ sub3 = rospy.Subscriber ('/uav3/mavros/global_position/local/adjusted', \
                          Odometry, cb3, queue_size=10)
 
 url0 = "rtsp://192.168.43.1:8554/fpv_stream"
-url1 = ""
+url1 = "rtsp://192.168.42.129:8554/fpv_stream"
 url2 = ""
 url3 = ""
 
@@ -100,7 +100,7 @@ while (cap0.isOpened() or cap1.isOpened() or cap2.isOpened() or \
     msg.pose = pose
     msg.image = image
     pub.publish (msg)
-    time.sleep (4)
+    time.sleep (3)
 
     if (cv2.waitKey (25) & 0xFF == ord ('q')):
         break

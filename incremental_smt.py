@@ -62,27 +62,12 @@ def visualize (ax, visible_array, obstacle_array, covered_array, alpha):
     draw_rec (ax, obstacle_array, 'obstacle', alpha)
     draw_rec (ax, covered_array, 'covered', alpha)
 
-map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
+map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
 
 local_map = np.full (map.shape, 0.5)
 
@@ -99,7 +84,7 @@ start_x = np.empty ((R,))
 start_y = np.empty ((R,))
 
 start_x[0] = 0
-start_x[1] = 1
+start_x[1] = 2
 # start_x[2] = 0
 # start_x[3] = 2
 
@@ -134,11 +119,11 @@ for r in range (R):
     files.append (f)
 
 motion_w = 2 # cost of taking each step
-old_w = 50 # reward of visiting old grid first
-visible_w = 2 # cost of covering visible grids which are near
+old_w = 60 # reward of visiting old grid first
+visible_w = 15 # cost of covering visible grids which are near
 not_covered_w = 5 # cost of covering already covered grid
 n_neighbors = 5
-old_limit = 400
+old_limit = 800
 visible_dict = {}
 
 fig, ax = plt.subplots (figsize=(dimension_x, dimension_y))
@@ -158,7 +143,10 @@ prev_coord = []
 for r in range (R):
     prev_coord.append (None)
 
-while num_covered < 0.97 * total:
+def absZ(x):
+    return If(x >= 0,x,-x)
+
+while (num_covered < (0.96 * total)):
 
     # print ("obstacles added:",obstacles_added)
     # print ("covered added:",covered_added)
@@ -240,6 +228,22 @@ while num_covered < 0.97 * total:
             for r2 in range (R):
                 if (r1 != r2 and r1 < r2):
                     s.add (Or(X[r1][t] != X[r2][t], Y[r1][t] != Y[r2][t]))
+
+    # just to make sure robots don't collide in actual scenario
+    for t in range (T):
+        for r1 in range (R):
+            for r2 in range (R):
+                if (r1 != r2 and r1 < r2):
+                    s.add (absZ (X[r1][t] - X[r2][t]) + absZ (Y[r1][t] - Y[r2][t]) >= 2)
+
+    # different trajectory
+    '''
+    for t in range (T):
+        for r1 in range (R):
+            for r2 in range (R):
+                if (r1 != r2 and r1 < r2):
+                    s.add (And ([Or (X[r1][t] != X[r2][t1], Y[r1][t] != Y[r2][t1]) for t1 in range (T)]))
+    '''
 
     safe = []
     for r in range (R):

@@ -84,7 +84,7 @@ start_x = np.empty ((R,))
 start_y = np.empty ((R,))
 
 start_x[0] = 0
-start_x[1] = 2
+start_x[1] = 1
 # start_x[2] = 0
 # start_x[3] = 2
 
@@ -146,7 +146,9 @@ for r in range (R):
 def absZ(x):
     return If(x >= 0,x,-x)
 
-while (num_covered < (0.96 * total)):
+percent = 1
+
+while (num_covered < (percent * total)):
 
     # print ("obstacles added:",obstacles_added)
     # print ("covered added:",covered_added)
@@ -230,20 +232,20 @@ while (num_covered < (0.96 * total)):
                     s.add (Or(X[r1][t] != X[r2][t], Y[r1][t] != Y[r2][t]))
 
     # just to make sure robots don't collide in actual scenario
+    '''
     for t in range (T):
         for r1 in range (R):
             for r2 in range (R):
                 if (r1 != r2 and r1 < r2):
                     s.add (absZ (X[r1][t] - X[r2][t]) + absZ (Y[r1][t] - Y[r2][t]) >= 2)
+    '''
 
     # different trajectory
-    '''
     for t in range (T):
         for r1 in range (R):
             for r2 in range (R):
                 if (r1 != r2 and r1 < r2):
                     s.add (And ([Or (X[r1][t] != X[r2][t1], Y[r1][t] != Y[r2][t1]) for t1 in range (T)]))
-    '''
 
     safe = []
     for r in range (R):

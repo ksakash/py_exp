@@ -32,27 +32,26 @@ def plot (image, origin):
     covered = np.array (covered)
     uncovered = np.array (uncovered)
 
-    # covered = covered - np.array (origin)
-    # uncovered = uncovered - np.array (origin)
+    covered = covered - np.array (origin)
+    uncovered = uncovered - np.array (origin)
 
     fig, ax = plt.subplots (figsize=(int (width/10), int (height/10)))
-    ax.set (xlim=(0,int (width/10)), ylim=(0, int (height/10)))
-    # ax.set (xlim=(0 - origin[0],int (width/10) - origin[0]), ylim=(0 - origin[1], int (height/10) - origin[1]))
-    # ax.axis ('off')
+    # ax.set (xlim=(0,int (width/10)), ylim=(0, int (height/10)))
+    ax.set (xlim=(0 - origin[0],int (width/10) - origin[0]), ylim=(0 - origin[1], int (height/10) - origin[1]))
     alpha = 1
 
     for c in covered:
         color = 'red'
-        r = Rectangle ((c[0],c[1]), 1, 1, linewidth=1, edgecolor='black', facecolor=color, alpha=alpha)
+        r = Rectangle ((c[0],c[1]), 1, 1, linewidth=0.5, edgecolor='black', facecolor=color, alpha=alpha)
         ax.add_patch (r)
 
     for u in uncovered:
         color = 'gray'
-        r = Rectangle ((u[0],u[1]), 1, 1, linewidth=1, edgecolor='black', facecolor=color, alpha=alpha)
+        r = Rectangle ((u[0],u[1]), 1, 1, linewidth=0.5, edgecolor='black', facecolor=color, alpha=alpha)
         ax.add_patch (r)
 
     plt.show ()
 
-image = cv2.imread ('results/finalResult.jpg')
+image = cv2.imread ('/home/ksakash/misc/drone_image_stitching/results/finalResult.jpg')
 origin = (1113, 867)
 plot (image, origin)

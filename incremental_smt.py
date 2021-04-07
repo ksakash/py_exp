@@ -62,12 +62,12 @@ def visualize (ax, visible_array, obstacle_array, covered_array, alpha):
     draw_rec (ax, obstacle_array, 'obstacle', alpha)
     draw_rec (ax, covered_array, 'covered', alpha)
 
-map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
+map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+                 [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
 
 local_map = np.full (map.shape, 0.5)
 
@@ -124,6 +124,7 @@ visible_w = 15 # cost of covering visible grids which are near
 not_covered_w = 5 # cost of covering already covered grid
 n_neighbors = 5
 old_limit = 800
+dist_w = 3
 visible_dict = {}
 
 fig, ax = plt.subplots (figsize=(dimension_x, dimension_y))
@@ -147,6 +148,7 @@ def absZ(x):
     return If(x >= 0,x,-x)
 
 percent = 1
+min_obstacle_dist = 1
 
 while (num_covered < (percent * total)):
 
@@ -174,12 +176,13 @@ while (num_covered < (percent * total)):
     P = [[Int("p_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
     S = [[Int("s_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
     NC = [[Int("NC_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
+    D = [Int("D_%s" % (j)) for j in range(T)]
 
     Re = [Int("re_%s" % (j)) for j in range(num_visible)]
 
     C = [[Int("c_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
 
-    total_cost_array = Re
+    total_cost_array = Re + D
     for r in range (R):
         total_cost_array += S[r] + C[r] + NC[r]
 
@@ -199,6 +202,9 @@ while (num_covered < (percent * total)):
 
     for i in range (num_visible):
         s.add (Or (And (Re[i] <= 0, Re[i] >= -old_limit), Re[i] == 100))
+
+    for t in range (T):
+        s.add (And (D[t] <= 0, D[t] >= -4 * dist_w * (dimension_x + dimension_y)))
 
     # obstacle avoidance
     for r in range (R):
@@ -237,15 +243,17 @@ while (num_covered < (percent * total)):
         for r1 in range (R):
             for r2 in range (R):
                 if (r1 != r2 and r1 < r2):
-                    s.add (absZ (X[r1][t] - X[r2][t]) + absZ (Y[r1][t] - Y[r2][t]) >= 2)
+                    s.add (absZ (X[r1][t] - X[r2][t]) + absZ (Y[r1][t] - Y[r2][t]) >= min_obstacle_dist)
     '''
 
     # different trajectory
+    '''
     for t in range (T):
         for r1 in range (R):
             for r2 in range (R):
                 if (r1 != r2 and r1 < r2):
                     s.add (And ([Or (X[r1][t] != X[r2][t1], Y[r1][t] != Y[r2][t1]) for t1 in range (T)]))
+    '''
 
     safe = []
     for r in range (R):
@@ -306,6 +314,15 @@ while (num_covered < (percent * total)):
         for t in range (T):
             s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for (x,y) in covered]), NC[r][t] == not_covered_w))
             s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for (x,y) in covered])), NC[r][t] == 0))
+
+    # for maximizing the distance
+    for t in range (T):
+        dsum = 0
+        for r1 in range (R):
+            for r2 in range (R):
+                if r1 < r2 and r1 != r2:
+                    dsum += -1 * absZ (X[r1][t] - X[r2][t]) - absZ (Y[r1][t] - Y[r2][t])
+        s.add (D[t] == dist_w * dsum)
 
     h = s.minimize (total_c)
 

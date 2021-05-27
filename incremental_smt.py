@@ -203,6 +203,16 @@ while (num_covered < (percent * total)):
     total_c = Int ('total_c')
     total_re = Int ('total_re')
 
+    '''
+    dist_thres = 1
+    visible_aux = []
+    for (x,y) in visible:
+        for r in range (R):
+            if (abs (x - start_x[r]) + abs (y - start_y[r]) <= dist_thres):
+                visible_aux.append ((x,y))
+                break
+    '''
+
     X = [[Int("x_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
     Y = [[Int("y_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
     P = [[Int("p_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
@@ -257,7 +267,7 @@ while (num_covered < (percent * total)):
             s.add(Implies(P[r][t] == 4, And(X[r][t+1] == X[r][t]-1, Y[r][t+1] == Y[r][t], C[r][t] == 5 * motion_w))) # left
 
     # collision avoidance
-    for t in range(0, T):
+    for t in range(1, T):
         for r1 in range (R):
             for r2 in range (R):
                 if (r1 != r2 and r1 < r2):
@@ -295,7 +305,7 @@ while (num_covered < (percent * total)):
         safe_ = []
         for i in ind:
             safe_.append (safe[i])
-        for t in range (T):
+        for t in range (1, T):
             s.add (Or ([And (X[r][t] == x, Y[r][t] == y) for (x, y) in safe_]))
 
     for (x,y) in visible:
@@ -307,20 +317,11 @@ while (num_covered < (percent * total)):
             else:
                 visible_dict[(x,y)] = -old_limit
 
-
-    dist_thres = 1
-    visible_aux_ = []
-    for (x,y) in visible:
-        for r in range (R):
-            if (abs (x - start_x[r]) + abs (y - start_y[r]) <= dist_thres):
-                visible_aux_.append ((x,y))
-                break
-
     # cover as many visible space as possible
     count = 0
     for (x,y) in visible:
-        s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)]), Re[count] == visible_dict[(x,y)]))
-        s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (T)])), Re[count] == 100))
+        s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (1, T)]), Re[count] == visible_dict[(x,y)]))
+        s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (1, T)])), Re[count] == 100))
         count += 1
 
     # if lost then the robot should gravitate towards the visible grids

@@ -1,7 +1,7 @@
 from z3 import *
 
 s = Optimize()
-T = 13
+T = 34
 R = 2
 total_c = Int ('total_c')
 
@@ -17,8 +17,8 @@ for r in range (R):
 
 s.add(total_c == Sum(total_cost))
 
-dimension_x = 5
-dimension_y = 5
+dimension_x = 8
+dimension_y = 8
 
 # Start Positions
 s.add(X[0][0] == 0)
@@ -73,13 +73,11 @@ for r in range(0, R):
         s.add(Implies(P[r][t] == 3, And(X[r][t+1] == X[r][t], Y[r][t+1] == Y[r][t]-1, C[r][t] == 2))) # down
         s.add(Implies(P[r][t] == 4, And(X[r][t+1] == X[r][t]-1, Y[r][t+1] == Y[r][t], C[r][t] == 2))) # left
 
-h = s.minimize(total_c)
+# h = s.minimize(total_c)
 
-'''
 for r in range (R):
     for t in range (T):
         s.minimize (C[r][t])
-'''
 
 print ("Whether the model is satisfiable?: ", s.check())
 print ("============ Solution ================")

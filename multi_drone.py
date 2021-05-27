@@ -108,7 +108,7 @@ def perform_course (tmp_dir):
         waypoints.append (waypoint)
 
     num_points = len (waypoints[0])
-    max_speed = 2
+    max_speed = 4
     print ("no. of points:", num_points)
 
     image_count = 0

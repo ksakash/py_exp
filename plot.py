@@ -39,16 +39,16 @@ for r in range (R):
     initialx.append (x_arr[r][0])
     initialy.append (y_arr[r][0])
 
-plt.scatter (initialx, initialy, c=['r','b'])
+plt.scatter (initialx, initialy, c=['b','r'])
 plt.ylim ((-1, 6))
-plt.xlim ((-1, 11))
+plt.xlim ((-1, 6))
 plt.pause (1)
 
 for i in range (0, len (x_arr[0]), 1):
-    plt.plot (x_arr[0][i:i+2], y_arr[0][i:i+2], 'ro-')
-    plt.plot (x_arr[1][i:i+2], y_arr[1][i:i+2], 'bo-')
+    plt.plot (x_arr[0][i:i+2], y_arr[0][i:i+2], 'b--')
+    plt.plot (x_arr[1][i:i+2], y_arr[1][i:i+2], 'r--')
     # plt.plot (x_arr[2][i:i+2], y_arr[2][i:i+2], 'go-')
     # plt.plot (x_arr[3][i:i+2], y_arr[3][i:i+2], 'yo-')
-    plt.pause (1)
+    plt.pause (1.5)
 
 plt.show ()

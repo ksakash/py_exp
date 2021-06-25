@@ -79,7 +79,7 @@ print (map.shape)
 num_covered = 0
 total = map.shape[0] * map.shape[1]
 R = 4
-T = 2
+T = 3
 
 local_range = 1
 
@@ -116,11 +116,11 @@ for r in range (R):
     files.append (f)
 
 motion_w = 1 # cost of taking each step
-old_w = 80 # reward of visiting old grid first
-visible_w = 25 # cost of covering visible grids which are near
+old_w = 70 # reward of visiting old grid first (higher the weight higher the reward)
+visible_w = 30 # cost of covering visible grids which are near (higher the weight higher the cost)
 not_covered_w = 5 # cost of covering already covered grid
-n_neighbors = 10 # no. of visible neighbors
-old_limit = 800 # highest reward for an old region
+n_neighbors = 5 # no. of visible neighbors
+old_limit = 1000 # highest reward for an old region
 dist_w = 3 # weight for distance cost function
 visible_dict = {}
 

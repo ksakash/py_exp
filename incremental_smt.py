@@ -70,7 +70,7 @@ map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
 
-map = np.full ((100,100), 0.5)
+map = np.full ((16,16), 0.5)
 
 local_map = np.full (map.shape, 0.5)
 
@@ -86,39 +86,9 @@ local_range = 1
 start_x = np.empty ((R,))
 start_y = np.empty ((R,))
 
-start_x[0] = 0
-start_x[1] = 1
-start_x[2] = 2
-start_x[3] = 3
-# start_x[4] = 4
-# start_x[5] = 5
-# start_x[6] = 6
-# start_x[7] = 7
-# start_x[8] = 8
-# start_x[9] = 9
-# start_x[10] = 10
-# start_x[11] = 11
-# start_x[12] = 12
-# start_x[13] = 13
-# start_x[14] = 14
-# start_x[15] = 15
-
-start_y[0] = 0
-start_y[1] = 0
-start_y[2] = 0
-start_y[3] = 0
-# start_y[4] = 0
-# start_y[5] = 0
-# start_y[6] = 0
-# start_y[7] = 0
-# start_y[8] = 0
-# start_y[9] = 0
-# start_y[10] = 0
-# start_y[11] = 0
-# start_y[12] = 0
-# start_y[13] = 0
-# start_y[14] = 0
-# start_y[15] = 0
+for r in range (R):
+    start_x[r] = r
+    start_y[r] = 0
 
 dimension_x = map.shape[1]
 dimension_y = map.shape[0]
@@ -146,11 +116,11 @@ for r in range (R):
     files.append (f)
 
 motion_w = 1 # cost of taking each step
-old_w = 50 # reward of visiting old grid first
-visible_w = 5 # cost of covering visible grids which are near
+old_w = 80 # reward of visiting old grid first
+visible_w = 25 # cost of covering visible grids which are near
 not_covered_w = 5 # cost of covering already covered grid
-n_neighbors = 5 # no. of visible neighbors
-old_limit = 500 # highest reward for an old region
+n_neighbors = 10 # no. of visible neighbors
+old_limit = 800 # highest reward for an old region
 dist_w = 3 # weight for distance cost function
 visible_dict = {}
 
@@ -174,15 +144,15 @@ for r in range (R):
 def absZ(x):
     return If(x >= 0,x,-x)
 
-percent = 0.97
+percent = 1.0
 min_obstacle_dist = 1
 
 path_lengths = np.zeros (R)
 
 start = time.time ()
-do_visualize = False
+do_visualize = True
 
-safe_length = 15
+safe_length = 25
 total_time = 0
 
 while (num_covered < (percent * total)):
@@ -194,16 +164,12 @@ while (num_covered < (percent * total)):
         draw_rec (ax, positions, 'positions', alpha)
         prev_positions = copy.copy (positions)
 
-    # for r in range (R):
-    #     print ("robot " + str (r) + ":", start_x[r], start_y[r])
-
     num_visible = len (visible)
 
     s = Optimize ()
     total_c = Int ('total_c')
     total_re = Int ('total_re')
 
-    '''
     dist_thres = 1
     visible_aux = []
     for (x,y) in visible:
@@ -211,7 +177,6 @@ while (num_covered < (percent * total)):
             if (abs (x - start_x[r]) + abs (y - start_y[r]) <= dist_thres):
                 visible_aux.append ((x,y))
                 break
-    '''
 
     X = [[Int("x_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
     Y = [[Int("y_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
@@ -220,7 +185,7 @@ while (num_covered < (percent * total)):
     # NC = [[Int("NC_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
     # D = [Int("D_%s" % (j)) for j in range(T)]
 
-    Re = [Int("re_%s" % (j)) for j in range(num_visible)]
+    Re = [Int("re_%s" % (j)) for j in range(len (visible_aux))]
 
     C = [[Int("c_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
 
@@ -234,7 +199,7 @@ while (num_covered < (percent * total)):
         s.add (And (X[r][0] == start_x[r], Y[r][0] == start_y[r]))
         s.add (Or (X[r][T-1] != start_x[r], Y[r][T-1] != start_y[r]))
 
-    for i in range (num_visible):
+    for i in range (len (visible_aux)):
         s.add (Or (And (Re[i] <= 0, Re[i] >= -old_limit), Re[i] == 100))
 
     '''
@@ -301,7 +266,7 @@ while (num_covered < (percent * total)):
         arr = copy.copy (safe)
         arr = np.array (arr)
         dist = abs (arr[:,0] - start_x[r]) + abs (arr[:,1] - start_y[r])
-        ind = dist.argsort ()[:safe_length]
+        ind = dist.argsort ()[:25]
         safe_ = []
         for i in ind:
             safe_.append (safe[i])
@@ -319,9 +284,9 @@ while (num_covered < (percent * total)):
 
     # cover as many visible space as possible
     count = 0
-    for (x,y) in visible:
-        s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (1, T)]), Re[count] == visible_dict[(x,y)]))
-        s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (1, T)])), Re[count] == 100))
+    for (x,y) in visible_aux:
+        s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (0, T)]), Re[count] == visible_dict[(x,y)]))
+        s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for r in range (R) for t in range (0, T)])), Re[count] == 100))
         count += 1
 
     # if lost then the robot should gravitate towards the visible grids
@@ -385,11 +350,6 @@ while (num_covered < (percent * total)):
 
     model = s.model ()
 
-    # for r in range (R):
-    #     for t in range (T):
-    #         print (model[X[r][t]], model[Y[r][t]])
-    #     print ('-------------------')
-
     for r in range (R):
         start_x[r] = int (str (model[X[r][T-1]]))
         start_y[r] = int (str (model[Y[r][T-1]]))
@@ -444,7 +404,7 @@ while (num_covered < (percent * total)):
 
     print ("no. of cells covered:", num_covered)
     print ("horizon:", k)
-    total += (toc - tic)
+    total_time += (toc - tic)
     print ("time:", toc - tic)
     print ("no. of visible cells:", len (visible))
 

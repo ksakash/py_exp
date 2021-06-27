@@ -70,7 +70,7 @@ map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
 
-map = np.full ((16,16), 0.5)
+map = np.full ((18,18), 0.5)
 
 local_map = np.full (map.shape, 0.5)
 
@@ -116,11 +116,11 @@ for r in range (R):
     files.append (f)
 
 motion_w = 1 # cost of taking each step
-old_w = 70 # reward of visiting old grid first (higher the weight higher the reward)
-visible_w = 30 # cost of covering visible grids which are near (higher the weight higher the cost)
-not_covered_w = 5 # cost of covering already covered grid
-n_neighbors = 5 # no. of visible neighbors
-old_limit = 1000 # highest reward for an old region
+old_w = 70 # reward of visiting old grid first (higher weight forces to choose older objects), (70) works good
+visible_w = 25 # cost of covering visible grids which are far (higher weight forces to choose nearer cells), (25) performs best
+not_covered_w = 15 # cost of covering already covered grid
+n_neighbors = 5 # no. of visible neighbors in visible cost function, (5) performs best
+old_limit = 1500 # highest reward for an old region
 dist_w = 3 # weight for distance cost function
 visible_dict = {}
 
@@ -144,7 +144,7 @@ for r in range (R):
 def absZ(x):
     return If(x >= 0,x,-x)
 
-percent = 1.0
+percent = 1
 min_obstacle_dist = 1
 
 path_lengths = np.zeros (R)
@@ -152,8 +152,10 @@ path_lengths = np.zeros (R)
 start = time.time ()
 do_visualize = True
 
-safe_length = 25
+safe_length = 50 # limit of visible cells to consider (50)
 total_time = 0
+
+only_near = False
 
 while (num_covered < (percent * total)):
 
@@ -182,7 +184,7 @@ while (num_covered < (percent * total)):
     Y = [[Int("y_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
     P = [[Int("p_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
     S = [[Int("s_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
-    # NC = [[Int("NC_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
+    NC = [[Int("NC_%s_%s" % (i, j)) for j in range(T)] for i in range(R)]
 
     Re = [Int("re_%s" % (j)) for j in range(len (visible_aux))]
 
@@ -190,7 +192,9 @@ while (num_covered < (percent * total)):
 
     total_cost_array = Re # + D
     for r in range (R):
-        total_cost_array += S[r] + C[r] # + NC[r]
+        total_cost_array += S[r] + C[r]
+    if only_near:
+        total_cost_array += NC[r]
 
     s.add (total_c == Sum (total_cost_array))
 
@@ -198,8 +202,12 @@ while (num_covered < (percent * total)):
         s.add (And (X[r][0] == start_x[r], Y[r][0] == start_y[r]))
         s.add (Or (X[r][T-1] != start_x[r], Y[r][T-1] != start_y[r]))
 
-    for i in range (len (visible_aux)):
-        s.add (Or (And (Re[i] <= 0, Re[i] >= -old_limit), Re[i] == 100))
+    if only_near:
+        for i in range (len (visible_aux)):
+            s.add (Or (Re[i] == -old_w, Re[i] == 100))
+    else:
+        for i in range (len (visible_aux)):
+            s.add (Or (And (Re[i] <= 0, Re[i] >= -old_limit), Re[i] == 100))
 
     # obstacle avoidance
     for r in range (R):
@@ -214,7 +222,8 @@ while (num_covered < (percent * total)):
             s.add (And (P[r][t] < 5, P[r][t] >= 0))
             s.add (Or (C[r][t] == 3 * motion_w, C[r][t] == 5 * motion_w))
             s.add (And (S[r][t] >= 0, S[r][t] <= visible_w * (dimension_x + dimension_y)))
-            # s.add (Or (NC[r][t] == not_covered_w, NC[r][t] == 0))
+            if only_near:
+                s.add (Or (NC[r][t] == not_covered_w, NC[r][t] == 0))
 
     # motion primitives
     for r in range (R):
@@ -242,7 +251,7 @@ while (num_covered < (percent * total)):
         arr = copy.copy (safe)
         arr = np.array (arr)
         dist = abs (arr[:,0] - start_x[r]) + abs (arr[:,1] - start_y[r])
-        ind = dist.argsort ()[:25]
+        ind = dist.argsort ()[:safe_length]
         safe_ = []
         for i in ind:
             safe_.append (safe[i])
@@ -251,8 +260,10 @@ while (num_covered < (percent * total)):
 
     for (x,y) in visible:
         if (x,y) not in visible_dict:
-            visible_dict[(x,y)] = 0
+            visible_dict[(x,y)] = -old_w
         else:
+            if only_near:
+                continue
             if visible_dict[(x,y)] > -old_limit:
                 visible_dict[(x,y)] -= old_w
             else:
@@ -287,21 +298,20 @@ while (num_covered < (percent * total)):
                 cost = visible_w * int (cost / dist.shape[0])
                 s.add (Implies (And (X[r][t] == x, Y[r][t] == y), S[r][t] == cost))
 
-    '''
-    for r in range (R):
-        arr = copy.copy (covered)
-        arr = np.array (arr)
-        if arr.shape[0] == 0:
-            continue
-        dist = abs (arr[:,0] - start_x[r]) + abs (arr[:,1] - start_y[r])
-        ind = dist.argsort ()[:safe_length]
-        covered_ = []
-        for i in ind:
-            covered_.append (covered[i])
-        for t in range (T):
-            s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for (x,y) in covered_]), NC[r][t] == not_covered_w))
-            s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for (x,y) in covered_])), NC[r][t] == 0))
-    '''
+    if only_near:
+        for r in range (R):
+            arr = copy.copy (covered)
+            arr = np.array (arr)
+            if arr.shape[0] == 0:
+                continue
+            dist = abs (arr[:,0] - start_x[r]) + abs (arr[:,1] - start_y[r])
+            ind = dist.argsort ()[:safe_length]
+            covered_ = []
+            for i in ind:
+                covered_.append (covered[i])
+            for t in range (T):
+                s.add (Implies (Or ([And (X[r][t] == x, Y[r][t] == y) for (x,y) in covered_]), NC[r][t] == not_covered_w))
+                s.add (Implies (Not (Or ([And (X[r][t] == x, Y[r][t] == y) for (x,y) in covered_])), NC[r][t] == 0))
 
     h = s.minimize (total_c)
 

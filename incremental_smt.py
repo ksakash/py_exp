@@ -70,7 +70,7 @@ map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
 
-map = np.full ((18,18), 0.5)
+map = np.full ((14,14), 0.5)
 
 local_map = np.full (map.shape, 0.5)
 
@@ -115,9 +115,15 @@ for r in range (R):
     f = open (filename, 'w+')
     files.append (f)
 
+
+# for only old: visible_w = 0, onlyNear = False
+# for only near: visible_w != 0, onlyNear = True, old_w != 0
+# for neither: visible_w = 0, onlyNear = True
+# for both: onlyNear = False, old_w != 0, visible_w != 0
+
 motion_w = 1 # cost of taking each step
 old_w = 70 # reward of visiting old grid first (higher weight forces to choose older objects), (70) works good
-visible_w = 25 # cost of covering visible grids which are far (higher weight forces to choose nearer cells), (25) performs best
+visible_w = 0 # cost of covering visible grids which are far (higher weight forces to choose nearer cells), (25) performs best
 not_covered_w = 15 # cost of covering already covered grid
 n_neighbors = 5 # no. of visible neighbors in visible cost function, (5) performs best
 old_limit = 1500 # highest reward for an old region

@@ -121,14 +121,25 @@ for r in range (R):
 # for neither: visible_w = 0, onlyNear = True
 # for both: onlyNear = False, old_w != 0, visible_w != 0
 
+only_near = False
 motion_w = 1 # cost of taking each step
 old_w = 70 # reward of visiting old grid first (higher weight forces to choose older objects), (70) works good
-visible_w = 0 # cost of covering visible grids which are far (higher weight forces to choose nearer cells), (25) performs best
+visible_w = 25 # cost of covering visible grids which are far (higher weight forces to choose nearer cells), (25) performs best
 not_covered_w = 15 # cost of covering already covered grid
 n_neighbors = 5 # no. of visible neighbors in visible cost function, (5) performs best
 old_limit = 1500 # highest reward for an old region
 dist_w = 3 # weight for distance cost function
 visible_dict = {}
+
+import sys
+
+mode = int (sys.argv[1])
+
+if mode == 0: # none (cover as many as possible)
+    visible_w = 0
+    only_near = True
+elif mode == 1: # age (prefer the older cells)
+    visible_w = 0
 
 fig, ax = plt.subplots (figsize=(dimension_x, dimension_y))
 ax.set (xlim=(0,dimension_x), ylim=(0,dimension_y))
@@ -160,8 +171,6 @@ do_visualize = True
 
 safe_length = 50 # limit of visible cells to consider (50)
 total_time = 0
-
-only_near = False
 
 while (num_covered < (percent * total)):
 

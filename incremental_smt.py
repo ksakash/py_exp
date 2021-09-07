@@ -40,9 +40,9 @@ def safe_space (x_, y_, l, map):
 def get_rec (x, y, t, alpha):
     color = ''
     if t == 'covered':
-        color = 'yellow'
+        color = 'lawngreen'
     elif t == 'visible':
-        color = 'green'
+        color = 'yellow'
     elif t == 'obstacle':
         color = 'black'
     elif t == 'positions':
@@ -63,6 +63,15 @@ def visualize (ax, visible_array, obstacle_array, covered_array, alpha):
     draw_rec (ax, obstacle_array, 'obstacle', alpha)
     draw_rec (ax, covered_array, 'covered', alpha)
 
+import itertools
+import random
+
+def get_rand_init_position (R, dimension):
+    grids = itertools.product (range (dimension), range (dimension))
+
+def get_rand_obst_position (dimension):
+    pass    
+
 map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
@@ -70,7 +79,26 @@ map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]])
 
-map = np.full ((14,14), 0.5)
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-r', dest='num_robots', type=int, help='Number of robots')
+parser.add_argument('-d', dest='dimension', type=int, help='Size of workspace')
+parser.add_argument('-f', dest='filename', type=str, help='Name of the file to save')
+parser.add_argument('-c', dest='count', type=str, help='Nth experiment')
+parser.add_argument('-m', dest='mode', default=3, type=int, help='Mode of the experiment')
+
+args = parser.parse_args()
+
+filename = args.filename
+f = open (filename, 'a+')
+
+log_filename = filename + '_c_' + str (args.count)
+g = open (log_filename, 'w+')
+
+dimension = int (args.dimension)
+
+map = np.full ((dimension,dimension), 0.5)
 
 local_map = np.full (map.shape, 0.5)
 
@@ -78,8 +106,8 @@ print (map.shape)
 
 num_covered = 0
 total = map.shape[0] * map.shape[1]
-R = 4
-T = 3
+R = int (args.num_robots)
+T = 3 # 2 for large experiments
 
 local_range = 1
 
@@ -110,10 +138,10 @@ obstacles_added = obstacles
 k = 0
 files = []
 
-for r in range (R):
-    filename = 'waypoints_' + str (r)
-    f = open (filename, 'w+')
-    files.append (f)
+# for r in range (R):
+#     filename = 'waypoints_' + str (r)
+#     f = open (filename, 'w+')
+#     files.append (f)
 
 
 # for only old: visible_w = 0, onlyNear = False
@@ -121,10 +149,13 @@ for r in range (R):
 # for neither: visible_w = 0, onlyNear = True
 # for both: onlyNear = False, old_w != 0, visible_w != 0
 
+# ideal : motion_w = 2, old_w = 70, visible_w = 30
+# ideal2 : motion_w = 2, old_w = 80, visible_w = 40
+
 only_near = False
-motion_w = 1 # cost of taking each step
+motion_w = 2 # cost of taking each step
 old_w = 70 # reward of visiting old grid first (higher weight forces to choose older objects), (70) works good
-visible_w = 25 # cost of covering visible grids which are far (higher weight forces to choose nearer cells), (25) performs best
+visible_w = 30 # cost of covering visible grids which are far (higher weight forces to choose nearer cells), (25) performs best
 not_covered_w = 15 # cost of covering already covered grid
 n_neighbors = 5 # no. of visible neighbors in visible cost function, (5) performs best
 old_limit = 1500 # highest reward for an old region
@@ -133,13 +164,16 @@ visible_dict = {}
 
 import sys
 
-mode = int (sys.argv[1])
+mode = int (args.mode)
+print ('mode:', mode)
 
 if mode == 0: # none (cover as many as possible)
     visible_w = 0
     only_near = True
 elif mode == 1: # age (prefer the older cells)
     visible_w = 0
+elif mode == 2: # near (prefer nearer cells)
+    only_near = True
 
 fig, ax = plt.subplots (figsize=(dimension_x, dimension_y))
 ax.set (xlim=(0,dimension_x), ylim=(0,dimension_y))
@@ -167,20 +201,40 @@ min_obstacle_dist = 1
 path_lengths = np.zeros (R)
 
 start = time.time ()
-do_visualize = True
+do_visualize = False
 
 safe_length = 50 # limit of visible cells to consider (50)
 total_time = 0
 
-while (num_covered < (percent * total)):
+prev_trajectories = []
+sat = True
+
+while (True):
 
     if do_visualize:
         visualize (ax, visible_added, obstacles_added, covered_added, alpha)
         positions = [(start_x[r], start_y[r]) for r in range (R)]
         draw_rec (ax, prev_positions, 'covered', alpha)
         draw_rec (ax, positions, 'positions', alpha)
-        prev_positions = copy.copy (positions)
+        c = ['r','m','b','c']
 
+        # if len (prev_trajectories) > 0:
+        #     for r in range (R):
+        #         for t in range (T):
+        #             if t > 0:
+        #                 plt.plot ([prev_trajectories[r][t-1][0], prev_trajectories[r][t][0]], [prev_trajectories[r][t-1][1], prev_trajectories[r][t][1]], c[r] + 'o--', linewidth=2, markersize=6)
+
+        for r in range (R):
+            (x, y) = (start_x[r], start_y[r])
+            rect = Rectangle ((x,y), 1, 1, linewidth=1, edgecolor='black', facecolor=c[r], alpha=alpha)
+            # rect = get_rec (x, y, 'positions', alpha)
+            ax.add_patch (rect)
+        prev_positions = copy.copy (positions)
+        plt.pause (0.001)
+        plt.savefig ('ideal2_plot/plot' + str (k) + '.png')
+
+    if not num_covered < (percent * total):
+        break
     num_visible = len (visible)
 
     s = Optimize ()
@@ -302,6 +356,9 @@ while (num_covered < (percent * total)):
             for xy in safe_:
                 x = int (xy[0])
                 y = int (xy[1])
+                if (x,y) not in covered:
+                    s.add (Implies (And (X[r][t] == x, Y[r][t] == y), S[r][t] == 0))
+                    continue
                 cost = 0
                 arr = copy.copy (visible)
                 arr = np.array (arr)
@@ -333,6 +390,7 @@ while (num_covered < (percent * total)):
     tic = time.time ()
 
     if str (s.check ()) == 'unsat':
+        sat = False
         print ("UNSAT!")
         break
 
@@ -364,12 +422,15 @@ while (num_covered < (percent * total)):
                 visible.remove ((j,i))
                 visible_dict.pop ((j,i))
 
+    prev_trajectories = []
     # fill the visible array from the trajectory that robot followed
     for r in range (R):
+        traj = []
         for t in range (T):
             i = int (str (model[Y[r][t]]))
             j = int (str (model[X[r][t]]))
             fill_obstacle_tocover (j, i, obstacles, visible, local_range, map)
+            traj.append ((j+0.5,i+0.5))
             if (j,i) == prev_coord[r]:
                 continue
             s = str (j) + " " + str (i) + "\n"
@@ -377,6 +438,7 @@ while (num_covered < (percent * total)):
             # files[r].write (s)
             # files[r].flush ()
             prev_coord[r] = (j,i)
+        prev_trajectories.append (traj)
 
     for v in visible:
         if v not in temp_visible:
@@ -393,15 +455,20 @@ while (num_covered < (percent * total)):
     num_covered = np.count_nonzero (local_map == 1.0) + len (obstacles)
 
     print ("no. of cells covered:", num_covered)
+    g.write ("no. of cells covered: {}\n".format (num_covered))
     print ("horizon:", k)
+    g.write ("horizon: {}\n".format (k))
     total_time += (toc - tic)
     print ("time:", toc - tic)
+    g.write ("time: {}\n".format (toc-tic))
     print ("no. of visible cells:", len (visible))
+    g.write ("no. of visible cells: {}\n----------------------\n".format (len (visible)))
 
     k += 1
 
-    if do_visualize:
-        plt.pause (0.001)
+    # if do_visualize:
+    #     # plt.savefig ('ideal2_plot/plot' + str (k) + '.png')
+    #     plt.pause (0.001)
 
 end = time.time ()
 
@@ -414,5 +481,10 @@ for r in range (R):
 print ("total time:", total_time)
 print ("time taken per horizon:", total_time/k)
 
-for f in files:
-    f.close ()
+f.write ("{} {} {} {} {} {}\n".format (args.count, total_time, k, num_covered, len (visible), int (sat)))
+
+f.close ()
+g.close ()
+
+# for f in files:
+#     f.close ()

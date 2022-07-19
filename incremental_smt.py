@@ -44,7 +44,7 @@ def get_rec (x, y, t, alpha):
     elif t == 'visible':
         color = 'yellow'
     elif t == 'obstacle':
-        color = 'black'
+        color = 'brown'
     elif t == 'positions':
         color = 'blue'
     else:
@@ -62,15 +62,6 @@ def visualize (ax, visible_array, obstacle_array, covered_array, alpha):
     draw_rec (ax, visible_array, 'visible', alpha)
     draw_rec (ax, obstacle_array, 'obstacle', alpha)
     draw_rec (ax, covered_array, 'covered', alpha)
-
-import itertools
-import random
-
-def get_rand_init_position (R, dimension):
-    grids = itertools.product (range (dimension), range (dimension))
-
-def get_rand_obst_position (dimension):
-    pass    
 
 map = np.array ([[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
                  [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
@@ -96,6 +87,14 @@ f = open (filename, 'a+')
 log_filename = filename + '_c_' + str (args.count)
 g = open (log_filename, 'w+')
 
+grid_filename = log_filename + '_grid'
+h = open (grid_filename, 'w+')
+
+plots_dir = log_filename + '_plots'
+
+# if not os.path.isdir (plots_dir):
+#     os.mkdir (plots_dir)
+
 dimension = int (args.dimension)
 
 map = np.full ((dimension,dimension), 0.5)
@@ -107,21 +106,40 @@ print (map.shape)
 num_covered = 0
 total = map.shape[0] * map.shape[1]
 R = int (args.num_robots)
-T = 3 # 2 for large experiments
+# T = 3 # 2 for large experiments
+T = 2
+obst = int (dimension**2/10)
+
+import random_lib
+
+(init_pos, grids) = random_lib.get_random_init_positions (dimension, R)
+obst_pos = [] # random_lib.get_random_obst_positions (grids, obst)
+
+grid_ = random_lib.get_print_grid_str (init_pos, obst_pos, dimension)
+h.write (grid_)
+h.close ()
 
 local_range = 1
 
-start_x = np.empty ((R,))
-start_y = np.empty ((R,))
+# start_x = np.empty ((R,))
+# start_y = np.empty ((R,))
 
-for r in range (R):
-    start_x[r] = r
-    start_y[r] = 0
+init_pos = np.array (init_pos, dtype='int32')
+start_x = init_pos[:,0]
+start_y = init_pos[:,1]
+
+print ('start_x:', start_x)
+print ('start_y:', start_y)
+print ('obstacles:', obst_pos)
+
+# for r in range (R):
+#     start_x[r] = r
+#     start_y[r] = 0
 
 dimension_x = map.shape[1]
 dimension_y = map.shape[0]
 
-obstacles = []
+obstacles = copy.copy (obst_pos)
 visible = []
 covered = []
 
@@ -135,6 +153,14 @@ for r in range (R):
 visible_added = visible
 obstacles_added = obstacles
 
+''' no obstacle
+obst_pos = np.array (obst_pos)
+map[obst_pos[:,1], obst_pos[:,0]] = 0
+local_map[obst_pos[:,1], obst_pos[:,0]] = 0
+'''
+
+print (map)
+
 k = 0
 files = []
 
@@ -142,7 +168,6 @@ files = []
 #     filename = 'waypoints_' + str (r)
 #     f = open (filename, 'w+')
 #     files.append (f)
-
 
 # for only old: visible_w = 0, onlyNear = False
 # for only near: visible_w != 0, onlyNear = True, old_w != 0
@@ -210,7 +235,8 @@ prev_trajectories = []
 sat = True
 
 while (True):
-
+    # print (local_map)
+    # print (time.sleep (1))
     if do_visualize:
         visualize (ax, visible_added, obstacles_added, covered_added, alpha)
         positions = [(start_x[r], start_y[r]) for r in range (R)]
@@ -227,11 +253,10 @@ while (True):
         for r in range (R):
             (x, y) = (start_x[r], start_y[r])
             rect = Rectangle ((x,y), 1, 1, linewidth=1, edgecolor='black', facecolor=c[r], alpha=alpha)
-            # rect = get_rec (x, y, 'positions', alpha)
             ax.add_patch (rect)
         prev_positions = copy.copy (positions)
         plt.pause (0.001)
-        plt.savefig ('ideal2_plot/plot' + str (k) + '.png')
+        plt.savefig (plots_dir + '/plot' + str (k) + '.png')
 
     if not num_covered < (percent * total):
         break
@@ -268,8 +293,8 @@ while (True):
     s.add (total_c == Sum (total_cost_array))
 
     for r in range (R):
-        s.add (And (X[r][0] == start_x[r], Y[r][0] == start_y[r]))
-        s.add (Or (X[r][T-1] != start_x[r], Y[r][T-1] != start_y[r]))
+        s.add (And (X[r][0] == int (start_x[r]), Y[r][0] == int (start_y[r])))
+        s.add (Or (X[r][T-1] != int (start_x[r]), Y[r][T-1] != int (start_y[r])))
 
     if only_near:
         for i in range (len (visible_aux)):
@@ -434,6 +459,7 @@ while (True):
             if (j,i) == prev_coord[r]:
                 continue
             s = str (j) + " " + str (i) + "\n"
+            g.write (s)
             path_lengths[r] += 1
             # files[r].write (s)
             # files[r].flush ()
@@ -449,8 +475,8 @@ while (True):
         j = obst[0]
         local_map[i][j] = 0.0
 
-        if obst not in temp_obst:
-            obstacles_added.append (obst)
+        # if obst not in temp_obst:
+        #     obstacles_added.append (obst)
 
     num_covered = np.count_nonzero (local_map == 1.0) + len (obstacles)
 
@@ -463,6 +489,7 @@ while (True):
     g.write ("time: {}\n".format (toc-tic))
     print ("no. of visible cells:", len (visible))
     g.write ("no. of visible cells: {}\n----------------------\n".format (len (visible)))
+    g.flush ()
 
     k += 1
 
@@ -479,10 +506,13 @@ print ("no. of horizons:", k)
 for r in range (R):
     print ("path length for robot", r, ":", path_lengths[r])
 print ("total time:", total_time)
-print ("time taken per horizon:", total_time/k)
+if k > 0:
+    print ("time taken per horizon:", total_time/k)
 
-f.write ("{} {} {} {} {} {}\n".format (args.count, total_time, k, num_covered, len (visible), int (sat)))
+f.write ("{} {} {} {} {}\n".format (args.count, total_time, k, num_covered, int (sat)))
+g.write ("{} {} {} {} {}\n".format (args.count, total_time, k, num_covered, int (sat)))
 
+f.flush ()
 f.close ()
 g.close ()
 
